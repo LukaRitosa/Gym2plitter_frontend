@@ -1,23 +1,124 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import Registracija from '../views/Registracija.vue'
+import Prijava from '../views/Prijava.vue'
+import Pocetna from '../views/Pocetna.vue'
+import Test from '../views/Test.vue'
+import adminPrijava from '../views/AdminPrijava.vue'
+import Admin from '../views/Admin.vue'
+import VjezbaMarer from '../views/VjezbaMaker.vue'
+import SplitMaker from '../views/SplitMaker.vue'
+import SplitBiranje from '../views/SplitBiranje.vue'
+import Split from '../views/Split.vue'
+import UserSplitovi from '../views/UserSplitovi.vue'
+import UrediDan from '@/views/UrediDan.vue'
+import UserVjezbaMaker from '@/views/UserVjezbaMaker.vue'
+import Kalendar from '@/views/Kalendar.vue'
+
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: HomeView,
+      name: 'Prijava',
+      component: Prijava,
     },
     {
-      path: '/about',
-      name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AboutView.vue'),
+      path: '/registracija',
+      name: 'Registracija',
+      component: Registracija,
     },
+    {
+       path: '/pocetna',
+       name: 'Pocetna',
+       component: Pocetna,
+    },
+    {
+       path: '/test',
+       name: 'Test',
+       component: Test
+    },
+    {
+      path: '/adminPrijava',
+      name: 'adminPrijava',
+      component: adminPrijava,
+    },
+    {
+      path: '/admin',
+      name: 'Admin',
+      component: Admin,
+      beforeEnter: (to, from, next) => {
+        const isAdmin = localStorage.getItem('admin') === 'true'
+
+        if (isAdmin) {
+          next() 
+        } else {
+          next('/adminPrijava')
+        }
+      }
+    },
+    {
+      path: '/vjezbaMaker',
+      name: 'VjezbaMaker',
+      component: VjezbaMarer,
+      beforeEnter: (to, from, next) => {
+      const isAdmin = localStorage.getItem('admin') === 'true'
+
+        if (isAdmin) {
+          next() 
+        } else {
+          next('/adminPrijava')
+        }
+      }
+    },
+    {
+      path: '/splitMaker',
+      name: 'SplitMaker',
+      component: SplitMaker,
+      beforeEnter: (to, from, next) => {
+      const isAdmin = localStorage.getItem('admin') === 'true'
+
+        if (isAdmin) {
+          next() 
+        } else {
+          next('/adminPrijava')
+        }
+      }
+    },
+    {
+       path: '/SplitBiranje',
+       name: 'SplitBiranje',
+       component: SplitBiranje,
+    },
+    {
+       path: '/Split',
+       name: 'Split',
+       component: Split,
+    },
+    {
+       path: '/UserSplitovi',
+       name: 'UserSplitovi',
+       component: UserSplitovi,
+    },
+    {
+      path: '/UrediDan/:danId',
+      name: 'UrediDan',
+      component: UrediDan,
+      props: true
+    },
+    {
+       path: '/UserVjezbaMaker',
+       name: 'UserVjezbaMaker',
+       component: UserVjezbaMaker,
+    },
+    {
+      path: '/kalendar',
+      name: 'kalendar',
+      component: Kalendar,
+    },    
   ],
 })
+
+
 
 export default router

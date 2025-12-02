@@ -1,4 +1,7 @@
 import './assets/main.css'
+import './assets/tailwind.css';
+import './firebase.js'
+
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
