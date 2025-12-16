@@ -13,6 +13,7 @@ import UserSplitovi from '../views/UserSplitovi.vue'
 import UrediDan from '@/views/UrediDan.vue'
 import UserVjezbaMaker from '@/views/UserVjezbaMaker.vue'
 import Kalendar from '@/views/Kalendar.vue'
+import HranaMaker from '@/views/HranaMaker.vue'
 
 
 const router = createRouter({
@@ -115,7 +116,21 @@ const router = createRouter({
       path: '/kalendar',
       name: 'kalendar',
       component: Kalendar,
-    },    
+    }, 
+    {
+      path: '/hranaMaker',
+      name: 'HranaMaker',
+      component: HranaMaker,
+      beforeEnter: (to, from, next) => {
+      const isAdmin = localStorage.getItem('admin') === 'true'
+
+        if (isAdmin) {
+          next() 
+        } else {
+          next('/adminPrijava')
+        }
+      }
+    },   
   ],
 })
 

@@ -24,6 +24,8 @@
                 <RouterLink to="/vjezbaMaker" class="w-full bg-red-500 text-white rounded hover:bg-red-300 p-2 font-semibold m-4">Vjezba maker</RouterLink>
             
                 <RouterLink to="/splitMaker" class="w-full bg-red-700 text-white rounded hover:bg-red-300 p-2 font-semibold m-4">Split maker</RouterLink>
+
+                <RouterLink to="/hranaMaker" class="w-full bg-green-700 text-white rounded hover:bg-red-300 p-2 font-semibold m-4">Hrana maker</RouterLink>
             </div>
 
             <button @click="logout" class="border bg-black text-white hover:bg-red-300 p-2 m-4 rounded">Odjava</button>
