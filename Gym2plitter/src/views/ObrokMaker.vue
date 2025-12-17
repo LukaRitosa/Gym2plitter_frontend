@@ -4,13 +4,17 @@
     import { collection, getDocs, addDoc } from 'firebase/firestore';
 
     const naziv=ref('')
-    const sastojci=ref([])
     const opis=ref('')
+
+    const sastojci=ref([])
+    const tempSastojci=ref([])
+
 
     const hranaLista=ref([])
 
     const poruka = ref('')
     const loading = ref(false)
+    const showSastojci = ref(false)
 
     const dohvatiHranu = async () => {
         const querySnapshot= await getDocs(collection(db, 'hrana'))
@@ -22,20 +26,40 @@
 
 
     const ukupneKalorije = computed(() => {
-        return hranaLista.value
-            .filter(h => sastojci.value.includes(h.id))
-            .reduce((sum, h) => sum + h.kalorije, 0)
+        return sastojci.value.reduce((sum, s)=>{
+            return sum + (s.kalorije * s.grami) / 100
+        }, 0)
     })
 
     const ukupniProteini = computed(() => {
-        return hranaLista.value
-            .filter(h => sastojci.value.includes(h.id))
-            .reduce((sum, h) => sum + h.proteini, 0)
+        return sastojci.value.reduce((sum, s) =>{
+            return sum + (s.proteini* s.grami) / 100
+        }, 0)
+    })
+
+    const ukupniGrami= computed(()=>{
+        return sastojci.value.reduce((sum, s)=>sum + s.grami, 0)
     })
 
 
 
     dohvatiHranu()
+
+    const potvrdiSastojke= () =>{
+        sastojci.value=tempSastojci.value.map(id=>{
+            const h=hranaLista.value.find(s=>s.id==id)
+
+            return {
+                id: h.id,
+                naziv: h.naziv,
+                kalorije: h.kalorije,
+                proteini: h.proteini,
+                grami: 100
+            }
+        })
+
+        showSastojci.value= false
+    }
 
 
 
@@ -53,6 +77,7 @@
                 odabranaHrana,
                 kalorije: ukupneKalorije.value,
                 proteini: ukupniProteini.value,
+                grami: ukupniGrami.value
             }
 
             await addDoc(collection(db, 'obroci'), noviObrok)
@@ -99,23 +124,36 @@
             <div class="mt-4 font-semibold">
                 <p>Kalorije: {{ ukupneKalorije }} kcal</p>
                 <p>Proteini: {{ ukupniProteini }} g</p>
+                <p>Grami: {{ ukupniGrami }} g</p>
             </div>
-            
-            <label class="block font-semibold mb-1">Odaberi sastojke:</label>
+        
+            <div>
+                <button @click="showSastojci = true" class="bg-red-700 px-3 py-1 rounded mt-3" >
+                    Dodaj / uredi sastojke
+                </button>
+            </div>
+            <div v-if="showSastojci" class="bg-red-800 p-4 rounded mt-3">
+                <h3 class="font-bold mb-2">Odaberi sastojke</h3>
 
-            <div class="space-y-1">
-                <label
-                    v-for="h in hranaLista"
-                    :key="h.id"
-                    class="flex items-center gap-2"
-                >
-                    <input type="checkbox" :value="h.id"  v-model="sastojci"/>
-                    {{ h.naziv }}
-                    <span class="text-sm text-gray-300">
-                        ({{ h.kalorije }} kcal | {{ h.proteini }} g P)
-                    </span>
+                <label v-for="h in hranaLista" :key="h.id" class="flex gap-2 items-center">
+                    <input type="checkbox" :value="h.id" v-model="tempSastojci"/> {{ h.naziv }}
                 </label>
+
+                <button @click="potvrdiSastojke" class="bg-green-600 px-3 py-1 rounded mt-2">
+                    Potvrdi
+                </button>
             </div>
+
+            <div v-if="sastojci.length" class="mt-4">
+                <h3 class="font-bold mb-2">Sastojci obroka</h3>
+
+                <div v-for="s in sastojci" :key="s.id" class="flex items-center gap-2 mb-1">
+                    <span class="w-24">{{ s.naziv }}</span>
+
+                    <input type="number" v-model.number="s.grami" class="w-20 text-white px-1" /> g
+                </div>
+            </div>
+
 
 
 

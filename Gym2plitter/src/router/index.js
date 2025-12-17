@@ -14,6 +14,7 @@ import UrediDan from '@/views/UrediDan.vue'
 import UserVjezbaMaker from '@/views/UserVjezbaMaker.vue'
 import Kalendar from '@/views/Kalendar.vue'
 import HranaMaker from '@/views/HranaMaker.vue'
+import ObrokMaker from '@/views/ObrokMaker.vue'
 
 
 const router = createRouter({
@@ -121,6 +122,20 @@ const router = createRouter({
       path: '/hranaMaker',
       name: 'HranaMaker',
       component: HranaMaker,
+      beforeEnter: (to, from, next) => {
+      const isAdmin = localStorage.getItem('admin') === 'true'
+
+        if (isAdmin) {
+          next() 
+        } else {
+          next('/adminPrijava')
+        }
+      }
+    }, 
+    {
+      path: '/obrokMaker',
+      name: 'ObrokMaker',
+      component: ObrokMaker,
       beforeEnter: (to, from, next) => {
       const isAdmin = localStorage.getItem('admin') === 'true'
 
