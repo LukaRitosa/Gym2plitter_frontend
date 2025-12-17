@@ -78,7 +78,7 @@
                 kalorije: ukupneKalorije.value,
                 proteini: ukupniProteini.value,
                 grami: ukupniGrami.value
-            }
+            } 
 
             await addDoc(collection(db, 'obroci'), noviObrok)
 
