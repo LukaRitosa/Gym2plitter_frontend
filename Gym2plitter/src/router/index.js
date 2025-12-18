@@ -15,6 +15,7 @@ import UserVjezbaMaker from '@/views/UserVjezbaMaker.vue'
 import Kalendar from '@/views/Kalendar.vue'
 import HranaMaker from '@/views/HranaMaker.vue'
 import ObrokMaker from '@/views/ObrokMaker.vue'
+import kalkulatorTest from '@/views/kalkulatorTest.vue'
 
 
 const router = createRouter({
@@ -145,6 +146,11 @@ const router = createRouter({
           next('/adminPrijava')
         }
       }
+    },
+    {
+       path: '/kalkulatorTest',
+       name: 'kalkulatorTest',
+       component: kalkulatorTest
     },   
   ],
 })

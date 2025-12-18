@@ -38,7 +38,14 @@
                 email: userCredential.user.email,
                 slobodnoVrijeme: null,
                 trenutniSplit: null,
-                slobodni_dani: []
+                slobodni_dani: [],
+                tezina: null,
+                visina: null,
+                cilj: '',
+                dob: null,
+                sex: null,
+                cilj_kalorije: null,
+                cilj_proteini: null
             })
 
             poruka.value = { error: false, message: 'Korisnik registriran!' }

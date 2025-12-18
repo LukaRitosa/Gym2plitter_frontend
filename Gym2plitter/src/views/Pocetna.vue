@@ -94,6 +94,10 @@
             <RouterLink to="/kalendar" class="w-full bg-pink-800 text-white rounded hover:bg-pink-600 p-2 font-semibold"> Kaledar</RouterLink>
         </div>
 
+        <div >
+            <RouterLink to="/kalkulatorTest" class="w-full bg-yellow-800 rounded hover:bg-yellow-600 p-2 font-semibold"> kalkulator</RouterLink>
+        </div>
+
 
         
         
