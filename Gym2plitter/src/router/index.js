@@ -16,6 +16,7 @@ import Kalendar from '@/views/Kalendar.vue'
 import HranaMaker from '@/views/HranaMaker.vue'
 import ObrokMaker from '@/views/ObrokMaker.vue'
 import kalkulatorTest from '@/views/kalkulatorTest.vue'
+import hranaBiranje from '@/views/hranaBiranje.vue'
 
 
 const router = createRouter({
@@ -151,6 +152,11 @@ const router = createRouter({
        path: '/kalkulatorTest',
        name: 'kalkulatorTest',
        component: kalkulatorTest
+    }, 
+    {
+       path: '/hranaBiranje',
+       name: 'hranaBiranje',
+       component: hranaBiranje
     },   
   ],
 })
