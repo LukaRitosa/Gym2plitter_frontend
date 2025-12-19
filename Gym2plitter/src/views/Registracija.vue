@@ -16,6 +16,31 @@
     const router=useRouter()
     const userStore=useUserStore()
     const loading = ref(false)
+
+    function stvoriPrehranu(){
+        const dani= []
+        const danas= new Date()
+        
+        for(let i=6; i>=0; i++){
+            let d= new Date(danas)
+            d.setDate(danas.getDate()-i)
+
+            dani.push({
+                datum: d.toISOString().split('T')[0],
+                ostvareneKalorije: 0,
+                ostvareniProteini:0,
+                pojedeno: {
+                    nekarakterizirano: [],
+                    marenda: [],
+                    rucak: [],
+                    vecera: [],
+                    snack: []
+                }
+            })
+        }
+
+        return dani
+    }
     
     const registracija = async () => {
         loading.value = true
