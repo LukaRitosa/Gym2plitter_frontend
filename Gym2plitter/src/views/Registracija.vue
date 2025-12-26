@@ -41,6 +41,8 @@
 
         return dani
     }
+
+    const prehrana= stvoriPrehranu()
     
     const registracija = async () => {
         loading.value = true
@@ -61,6 +63,7 @@
             await setDoc(doc(db, "users", userCredential.user.uid), {
                 username: username.value,
                 email: userCredential.user.email,
+                prehrana: prehrana,
                 slobodnoVrijeme: null,
                 trenutniSplit: null,
                 slobodni_dani: [],
