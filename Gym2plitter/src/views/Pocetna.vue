@@ -102,6 +102,9 @@
             <RouterLink to="/hranaBiranje" class="w-full bg-pink-800 rounded hover:bg-pink-600 p-2 font-semibold"> kalkulator</RouterLink>
         </div>
 
+        <div >
+            <RouterLink to="/prehrana" class="w-full bg-pink-800 rounded hover:bg-pink-600 p-2 font-semibold"> prehrana</RouterLink>
+        </div>
         
         
         <div class="text-red-500">{{ poruka }}</div>

@@ -1,292 +1,84 @@
 <script setup>
     import { ref, onMounted } from 'vue'
     import { useRouter } from 'vue-router'
-    import { doc, getDoc, updateDoc } from 'firebase/firestore'
+    import { doc, getDoc } from 'firebase/firestore'
     import { db } from '@/firebase'
     import { useUserStore } from '@/stores/userStore'
 
     const router = useRouter()
     const userStore = useUserStore()
-    const kalendar_podaci = ref({})
-    const loading = ref(false)
-    const edit=ref(false)
 
-    const dani_u_tjednu=[
-        'Nedjelja', 'Ponedjeljak',  'Utorak', 'Srijeda', 'Četvrtak', 'Petak', 'Subota',  
-    ]
+    const userPodaci = ref(null)
+    const danasnjaPrehrana = ref(null)
+    const loading = ref(true)
 
-    const tjedni=ref([])
+    function formatirajDatumISO(datum) {
+        const y = datum.getFullYear()
+        const m = String(datum.getMonth() + 1).padStart(2, '0')
+        const d = String(datum.getDate()).padStart(2, '0')
+        return `${y}-${m}-${d}`
+    }
 
-
-
-    const generirajKalendar = () => {
+    async function dohvatiUserPodatke(){
         loading.value = true
-        const danas = new Date()
-        const kalendar = []
-    
-
-        for (let i = 0; i < 14; i++) {
-            const datum = new Date(danas)
-            datum.setDate(danas.getDate() + i)
-
-            kalendar.push({
-                datum: datum,
-                id: formatDateKey(datum),
-                dan_u_tjednu: dani_u_tjednu[datum.getDay()], 
-                dan_u_mjesecu: datum.getDate(),
-                mjesec: datum.getMonth() + 1,
-                godina: datum.getFullYear(),
-                tjedan: Math.floor(i / 7) + 1,
-            })
-        }
-    
-        tjedni.value = kalendar;
-
-    }
-
-
-    function formatDateKey(datum) {
-        const year = datum.getFullYear()
-        const month = String(datum.getMonth() + 1).padStart(2, '0')
-        const day = String(datum.getDate()).padStart(2, '0')
-        return `${year}-${month}-${day}`
-    }
-
-    const dohvatiKalendar = async () => {
         try {
+            const user = userStore.currentUser
+            if (!user) return
 
-            const userDocRef = doc(db, `users/${userStore.currentUser.uid}`)
-            const userDocSnap = await getDoc(userDocRef)
+            const docRef = doc(db, 'users', user.uid)
+            const docSnap = await getDoc(docRef)
 
-            const data = userDocSnap.data()
-                
-            const splitDocRef = doc(db, `users/${userStore.currentUser.uid}/splits/${data.trenutniSplit}`)
-            const splitSnap = await getDoc(splitDocRef)
-            
-            if (splitSnap.exists()) {
-                kalendar_podaci.value = splitSnap.data().kalendar || {}
+            if (docSnap.exists()) {
+                userPodaci.value = docSnap.data()
+
+                const prehranaArray = userPodaci.value.prehrana || []
+                const danasISO = formatirajDatumISO(new Date())
+
+                danasnjaPrehrana.value = prehranaArray.find(d => d.datum === danasISO) || null
             }
-
-        } catch (error) {
-            console.error("Greška pri dohvaćanju kalendara:", error)
+        } catch(error) {
+            console.error('Greška', error)
         } finally {
             loading.value = false
         }
     }
 
-    const getTreningZaDatum = (datum) => {
-        return kalendar_podaci.value[datum] || { naziv: 'Odmor', split_dan_id: null }
-    }
-
-
-
-
-
-
-
-    const odrzavajKalendar= async () =>{
-        loading.value=true
-        try{
-            const userDocRef = doc(db, `users/${userStore.currentUser.uid}`)
-            const userDocSnap = await getDoc(userDocRef)
-            if (!userDocSnap.exists()) return
-            
-            const data = userDocSnap.data()
-            const slobodni_dani=data.slobodni_dani
-
-
-            const splitDocRef = doc(db, `users/${userStore.currentUser.uid}/splits/${data.trenutniSplit}`)
-            const snap = await getDoc(splitDocRef)
-            if (!snap.exists()) return
-
-            const split = snap.data()
-            const kalendar = { ...(split.kalendar || {}) }
-            const split_dani={...(split.dani || {})}
-            const split_broj_dana=split.broj_dana
-
-
-
-            const danas=formatDateKey(new Date)
-            let brojac=0
-            
-
-            const sviDani = Object.keys(kalendar).sort((a, b) => new Date(a) - new Date(b))
-            if (sviDani.length === 0) return
-
-            const radniDani = sviDani.filter(d => kalendar[d].split_dan_id !== null)
-
-            let zadnji_datum_id=null
-            for (const dan of radniDani) {
-                zadnji_datum_id = dan
-            }
-
-
-            let zadnji_split_dan=kalendar[zadnji_datum_id].split_dan_id
-
-            let zadnji_datum=null
-            for(const dan of sviDani){
-                if(new Date(dan) < new Date(danas)){
-                    brojac++
-
-                    delete kalendar[dan]
-                }
-                zadnji_datum=new Date(dan)
-            }
-
-            if(brojac===0){
-                return
-            }
-
-            if(brojac===14){
-                for(let i=0; i<14; i++){
-                    const datum = new Date(danas)
-                    datum.setDate(danas.getDate() + 1)
-                    const datumISO = datum.toLocaleDateString("sv-SE") 
-                    const danUTjednu = datum.toLocaleDateString("hr-HR", { weekday: "long" })
-
-                    zadnji_split_dan=(zadnji_split_dan + 1)  % split_broj_dana
-                    
-                    
-                    if(slobodni_dani[danUTjednu]){
-                        kalendar[datumISO]={
-                            split_dan_id: split_dani[zadnji_split_dan].dan,
-                            naziv: split_dani[zadnji_split_dan].naziv
-                        }
-                    }
-                    else{
-                        kalendar[datumISO]={
-                            split_dan_id: null,
-                            naziv: "Odmor"
-                        }
-                    }
-                }
-            }
-
-            else{
-                for(let i=1; i<=brojac; i++){
-                    zadnji_datum=new Date(zadnji_datum)
-                    zadnji_datum.setDate(zadnji_datum.getDate()+1)
-                    const datumISO = zadnji_datum.toLocaleDateString("sv-SE") 
-                    const danUTjednu = zadnji_datum.toLocaleDateString("hr-HR", { weekday: "long" })
-                    
-                    
-                    
-                    if(i!==1){
-                        zadnji_split_dan=(zadnji_split_dan + 1) % split_broj_dana
-                    }
-                    if(i===1 && zadnji_split_dan===split_broj_dana){
-                        zadnji_split_dan=0
-                    }
-
-                    if(slobodni_dani.includes(danUTjednu)){
-                        kalendar[datumISO]={
-                            split_dan_id: split_dani[zadnji_split_dan].dan,
-                            naziv: split_dani[zadnji_split_dan].naziv
-                        }
-                    }
-                    else{
-                        kalendar[datumISO]={
-                            split_dan_id: null,
-                            naziv: "Odmor"
-                        }
-                    }
-                }
-            }
-
-
-            await updateDoc(splitDocRef, { kalendar })
-            kalendar_podaci.value = kalendar
-            
-        } catch(error){
-            console.error("Greška pri održavanju datuma", error)
-        } finally{
-            loading.value=false
-        }
-    }
-
-
-    onMounted(async () => {
-        generirajKalendar()
-        await dohvatiKalendar()
-        odrzavajKalendar()
+    onMounted(() => {
+        dohvatiUserPodatke()
     })
-
-
 </script>
 
 <template>
-    <div class="min-h-screen flex flex-col items-center justify-center bg-gray-100 text-red-900 px-4">
-        
-        <div v-if="loading">
-            <img src="https://static.wixstatic.com/media/68315b_30dbad1140034a3da3c59278654e1655~mv2.gif" class="h-full" />
+    <div v-if="!loading" class="min-h-screen flex flex-col items-center justify-center bg-gray-100 text-red-900 px-4">
+
+        <div v-if="userPodaci">
+            <p>Kalorije: {{ userPodaci.cilj_kalorije ?? 'Nije definirano' }} kcal</p>
+            <p>Proteini: {{ userPodaci.cilj_proteini ?? 'Nije definirano' }}</p>
         </div>
 
+        <div v-if="danasnjaPrehrana">
+            <p>Ostvarene kalorije: {{ danasnjaPrehrana.ostvareneKalorije }}</p>
+            <p>Ostvareni proteini: {{ danasnjaPrehrana.ostvareniProteini }}</p>
 
-
-        <div v-else class="overflow-x-auto">
-
-            <div class=" my-4">
-                <RouterLink to="/pocetna" class="w-full bg-red-400 text-white hover:bg-red-300 p-2 font-semibold rounded"> Početna</RouterLink>
+            <div v-for="(obrok, ime_obroka) in danasnjaPrehrana.pojedeno" :key="ime_obroka" class="mb-2">
+                <b>{{ ime_obroka.charAt(0).toUpperCase() + ime_obroka.slice(1) }}:</b>
+                <ul>
+                    <li v-if="obrok.length === 0" class="text-gray-500 italic">
+                        Nema unosa
+                    </li>
+                    <li v-for="(stavka, i) in obrok" :key="i">
+                        {{ stavka }}
+                    </li>
+                </ul>
             </div>
+        </div>
 
-            <h3 class="text-3xl font-bold my-4">Kalendar</h3>
-
-            <div class="grid grid-cols-7 gap-2 min-w-max grid-red-7 my-4">
-                <div v-for="(datum, index) in tjedni" class="text-center border border-red-700">           
-                    <div class="font-bold py-2 border-b sticky top-0 bg-red-800 text-gray-100">
-                        {{ datum.dan_u_tjednu }}
-                    </div>
-                    <div class="text-sm font-medium bg-white">
-                        {{ datum.dan_u_mjesecu }}.{{ datum.mjesec }}.
-                    </div>
-                    <div v-if="getTreningZaDatum(datum.id).split_dan_id !== null" 
-                            class="mt-1 text-xs font-semibold p-1 rounded bg-white bg-opacity-70">
-                        {{ getTreningZaDatum(datum.id).naziv }}
-
-                        <div v-if="edit">
-                            <button class="border bg-gray-500 text-white hover:bg-gray-300 p-2 rounded" @click="postaviOdmor(datum.id)">
-                                Odmor
-                            </button>
-                        </div>
-
-                        <div v-if="edit">
-                            <button class="border bg-red-600 text-white hover:bg-red-300 p-2 rounded" @click="preskoci(datum.id)">
-                                Preskoči
-                            </button>
-                        </div>
-
-                        <div v-else @click="idiNaDan(getTreningZaDatum(datum.id).split_dan_id)">
-                            <button class="border bg-red-800 text-white hover:bg-red-500 p-2 rounded">
-                                Idi na dan
-                            </button>    
-                        </div>
-                        
-                        
-                        
-                    </div>
-
-                    <div v-else class="mt-1 text-xs text-gray-500">
-                        Odmor
-                        <div>
-                            <button class="border bg-blue-500 text-white hover:bg-blue-300 p-2 rounded" @click="otkaziOdmor(datum.id)" v-if="edit">
-                                Otkaži odmor
-                            </button> 
-                        </div>
-                        
-                    </div>
-                </div>
-            </div>
-
-            <button @click="edit=true" class="border bg-red-500 text-white hover:bg-red-300 p-2 rounded" v-if="!edit">
-                Edit mode
-            </button>
-
-            <button @click="edit=false" class="border bg-red-500 text-white hover:bg-red-300 p-2 rounded" v-else>
-                Izađi iz edit mode
-            </button>
-
-
-        </div> 
+        <div v-else>
+            <p>Nema unosa prehrane za danas.</p>
+        </div>
     </div>
 
+    <div v-else class="min-h-screen flex flex-col items-center px-4 justify-center">
+        <img src="https://static.wixstatic.com/media/68315b_30dbad1140034a3da3c59278654e1655~mv2.gif" class="h-full" />
+    </div>
 </template>

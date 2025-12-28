@@ -17,16 +17,23 @@
     const userStore=useUserStore()
     const loading = ref(false)
 
+    function formatirajDatumISO(datum) {
+        const y = datum.getFullYear()
+        const m = String(datum.getMonth() + 1).padStart(2, '0')
+        const d = String(datum.getDate()).padStart(2, '0')
+        return `${y}-${m}-${d}`
+    }
+
     function stvoriPrehranu(){
         const dani= []
         const danas= new Date()
         
-        for(let i=6; i>=0; i++){
+        for(let i=6; i>=0; i--){
             let d= new Date(danas)
             d.setDate(danas.getDate()-i)
 
             dani.push({
-                datum: d.toISOString().split('T')[0],
+                datum: formatirajDatumISO(d),
                 ostvareneKalorije: 0,
                 ostvareniProteini:0,
                 pojedeno: {
@@ -42,16 +49,17 @@
         return dani
     }
 
-    const prehrana= stvoriPrehranu()
     
     const registracija = async () => {
         loading.value = true
         if(password.value!==password2.value){
             poruka.value.error = true
             poruka.value.message = 'Lozinke se ne podudaraju'
+            loading.value = false
             return
         }
-        try {
+        try {            
+            const preh= stvoriPrehranu()
             const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value)
 
             userStore.setCurrentUserSignUp({
@@ -63,7 +71,7 @@
             await setDoc(doc(db, "users", userCredential.user.uid), {
                 username: username.value,
                 email: userCredential.user.email,
-                prehrana: prehrana,
+                prehrana: preh,
                 slobodnoVrijeme: null,
                 trenutniSplit: null,
                 slobodni_dani: [],
@@ -75,8 +83,8 @@
                 cilj_kalorije: null,
                 cilj_proteini: null
             })
+            
 
-            poruka.value = { error: false, message: 'Korisnik registriran!' }
             router.push('/')
         } catch (error) {
             poruka.value = { error: true, message: 'Greška: ' + error.message }
