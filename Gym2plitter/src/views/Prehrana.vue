@@ -1,5 +1,5 @@
 <script setup>
-    import { ref, onMounted } from 'vue'
+    import { ref, onMounted, watch } from 'vue'
     import { useRouter } from 'vue-router'
     import { doc, getDoc } from 'firebase/firestore'
     import { db } from '@/firebase'
@@ -11,6 +11,8 @@
     const userPodaci = ref(null)
     const danasnjaPrehrana = ref(null)
     const loading = ref(true)
+
+    const odabraniDatum = ref(new Date())
 
     function formatirajDatumISO(datum) {
         const y = datum.getFullYear()
@@ -32,7 +34,7 @@
                 userPodaci.value = docSnap.data()
 
                 const prehranaArray = userPodaci.value.prehrana || []
-                const danasISO = formatirajDatumISO(new Date())
+                const danasISO = formatirajDatumISO(odabraniDatum.value)
 
                 danasnjaPrehrana.value = prehranaArray.find(d => d.datum === danasISO) || null
             }
@@ -43,6 +45,30 @@
         }
     }
 
+    function nazad() {
+        const d = new Date(odabraniDatum.value)
+        d.setDate(d.getDate() - 1)
+        odabraniDatum.value = d
+    }
+
+        function naprijed() {
+        const d = new Date(odabraniDatum.value)
+        d.setDate(d.getDate() + 1)
+        odabraniDatum.value = d
+    }
+
+    function postaviPrehranuZaDatum(datum){
+        if(!userPodaci.value) return
+
+        const iso= formatirajDatumISO(datum)
+
+        danasnjaPrehrana.value=userPodaci.value.prehrana.find(p=> p.datum===iso)|| null
+    }
+
+    watch(odabraniDatum, (novi)=>{
+        postaviPrehranuZaDatum(novi)
+    })
+
     onMounted(() => {
         dohvatiUserPodatke()
     })
@@ -50,6 +76,16 @@
 
 <template>
     <div v-if="!loading" class="min-h-screen flex flex-col items-center justify-center bg-gray-100 text-red-900 px-4">
+
+        <div>
+            <button @click="nazad">
+                -
+            </button>
+
+            <button @click="naprijed">
+                +
+            </button>
+        </div>
 
         <div v-if="userPodaci">
             <p>Kalorije: {{ userPodaci.cilj_kalorije ?? 'Nije definirano' }} kcal</p>
@@ -61,7 +97,7 @@
             <p>Ostvareni proteini: {{ danasnjaPrehrana.ostvareniProteini }}</p>
 
             <div v-for="(obrok, ime_obroka) in danasnjaPrehrana.pojedeno" :key="ime_obroka" class="mb-2">
-                <b>{{ ime_obroka.charAt(0).toUpperCase() + ime_obroka.slice(1) }}:</b>
+                <b>{{ ime_obroka }}:</b> <button>+</button>
                 <ul>
                     <li v-if="obrok.length === 0" class="text-gray-500 italic">
                         Nema unosa
