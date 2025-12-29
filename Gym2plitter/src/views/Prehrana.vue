@@ -1,7 +1,7 @@
 <script setup>
     import { ref, onMounted, watch } from 'vue'
     import { useRouter } from 'vue-router'
-    import { doc, getDoc } from 'firebase/firestore'
+    import { collection, doc, getDoc, getDocs } from 'firebase/firestore'
     import { db } from '@/firebase'
     import { useUserStore } from '@/stores/userStore'
 
@@ -13,6 +13,10 @@
     const loading = ref(true)
 
     const odabraniDatum = ref(new Date())
+
+    const izbornikHrane = ref(false)
+    const aktivniObrok = ref(null) 
+
 
     function formatirajDatumISO(datum) {
         const y = datum.getFullYear()
@@ -65,25 +69,101 @@
         danasnjaPrehrana.value=userPodaci.value.prehrana.find(p=> p.datum===iso)|| null
     }
 
+    function otvoriIzbornik(obrok) {
+        aktivniObrok.value = obrok
+        izbornikHrane.value = true
+    }
+
+    function zatvoriIzbornik() {
+        aktivniObrok.value = null
+        izbornikHrane.value = false
+    }
+
+    const svaHrana=ref([])
+
+    async function dohvatiHranu(){
+        loading.value=true
+        try{
+            const querySnap= await getDocs(collection(db, 'hrana'))
+
+            svaHrana.value= querySnap.docs.map(doc=>({
+                id: doc.id,
+                grami: 100,
+                ...doc.data()
+            }))
+        } catch(error){
+            console.error('Greška kod hrane', error)
+        } finally{
+            loading.value=false
+        }
+    }
+
+    const sviObroci=ref([])
+
+    async function dohvatiObroke(){
+        loading.value=true
+        try{
+            const querySnap= await getDocs(collection(db, 'obroci'))
+
+            sviObroci.value = querySnap.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }))
+        } catch(error){
+            console.error('Greška kod obroka', error)
+        } finally{
+            loading.value=false
+        }
+    }
+
+    const detaljiStavke=ref(null)
+
+    function detaljiHrane(hrana){
+        detaljiStavke.value={
+            tip: 'hrana',
+            podatak: hrana,
+            novi_grami: 100
+        }
+        detalji.value=true
+    }
+
+    function detaljiObroka(obrok){
+        detaljiStavke.value={
+            tip: 'obrok',
+            podatak: obrok,
+            novi_grami: obrok.grami
+        }
+        detalji.value=true
+    }
+
+    const detalji=ref(false)
+
+    function zatvoriDetalji(){
+        detalji.value=false
+        detaljiStavke.value=null
+    }
+
     watch(odabraniDatum, (novi)=>{
         postaviPrehranuZaDatum(novi)
     })
 
-    onMounted(() => {
-        dohvatiUserPodatke()
+    onMounted(async() => {
+        dohvatiUserPodatke(),
+        await dohvatiHranu(),
+        await dohvatiObroke()
     })
 </script>
 
 <template>
-    <div v-if="!loading" class="min-h-screen flex flex-col items-center justify-center bg-gray-100 text-red-900 px-4">
+    <div v-if="!loading && !izbornikHrane" class="min-h-screen flex flex-col items-center justify-center bg-gray-100 text-red-900 px-4">
 
         <div>
             <button @click="nazad">
-                -
+                <
             </button>
-
+            -
             <button @click="naprijed">
-                +
+                >
             </button>
         </div>
 
@@ -97,7 +177,7 @@
             <p>Ostvareni proteini: {{ danasnjaPrehrana.ostvareniProteini }}</p>
 
             <div v-for="(obrok, ime_obroka) in danasnjaPrehrana.pojedeno" :key="ime_obroka" class="mb-2">
-                <b>{{ ime_obroka }}:</b> <button>+</button>
+                <b>{{ ime_obroka }}:</b> <button @click="otvoriIzbornik(ime_obroka)">+</button>
                 <ul>
                     <li v-if="obrok.length === 0" class="text-gray-500 italic">
                         Nema unosa
@@ -111,6 +191,51 @@
 
         <div v-else>
             <p>Nema unosa prehrane za danas.</p>
+        </div>
+    </div>
+
+    <div v-else-if="izbornikHrane && !detalji" class="min-h-screen flex flex-col items-center justify-center bg-gray-100 text-red-900 px-4">
+        <button @click="zatvoriIzbornik()">
+            zatvori
+        </button>
+        <h3>
+            <b>
+                Hrana
+            </b>
+        </h3>
+        <div v-for="h in svaHrana" :key="h.id" @click="detaljiHrane(h)">
+            {{ h.naziv }} – {{ h.kalorije }} kcal / {{ h.proteini }} g
+            <b>{{ h.grami }} grama</b>
+        </div>
+
+        <h3>
+            <b>
+                Obroci
+            </b>
+        </h3>
+        <div v-for="o in sviObroci" :key="o.id" @click="detaljiObroka(o)">
+            {{ o.naziv }} – {{ o.kalorije }} kcal / {{ o.proteini }} g
+            <b>{{ o.grami }} grama</b>
+        </div>
+
+    </div>
+
+    <div v-else-if="detalji" class="min-h-screen flex flex-col items-center justify-center bg-gray-100 text-red-900 px-4">
+        <button @click="zatvoriDetalji()">
+            nazad
+        </button>
+
+        <div>
+            {{ detaljiStavke.podatak.naziv }}
+        </div>
+        <div>
+            {{ detaljiStavke.podatak.kalorije }} kcal
+        </div>
+        <div>
+            {{ detaljiStavke.podatak.proteini }} g
+        </div>
+        <div>
+            {{ detaljiStavke.podatak.grami }} grama
         </div>
     </div>
 
