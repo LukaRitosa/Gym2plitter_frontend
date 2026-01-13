@@ -1,7 +1,7 @@
 <script setup>
     import { ref, onMounted, watch } from 'vue'
     import { useRouter } from 'vue-router'
-    import { collection, doc, getDoc, getDocs } from 'firebase/firestore'
+    import { collection, doc, getDoc, getDocs, updateDoc } from 'firebase/firestore'
     import { db } from '@/firebase'
     import { useUserStore } from '@/stores/userStore'
 
@@ -143,6 +143,48 @@
         detaljiStavke.value=null
     }
 
+    async function spremiPrehranu() {
+        try {
+            const user = userStore.currentUser
+            if (!user) return
+
+            const docRef = doc(db, 'users', user.uid)
+
+            await updateDoc(docRef, {
+                prehrana: userPodaci.value.prehrana
+            })
+
+        } catch (err) {
+            console.error('Greška pri spremanju prehrane:', err)
+        }
+    }
+
+    async function dodajStavku() {
+        if (!danasnjaPrehrana.value || !aktivniObrok.value) return
+
+        const g = detaljiStavke.value.novi_grami
+        const p = detaljiStavke.value.podatak
+
+        const stavka = {
+            naziv: p.naziv,
+            grami: g,
+            kalorije: (g / 100) * p.kalorije,
+            proteini: (g/100) * p.proteini
+        }
+
+        danasnjaPrehrana.value.pojedeno[aktivniObrok.value].push(stavka)
+
+        danasnjaPrehrana.value.ostvareneKalorije += stavka.kalorije
+        danasnjaPrehrana.value.ostvareniProteini += stavka.proteini
+
+        await spremiPrehranu()
+
+        detalji.value = false
+        izbornikHrane.value = false
+        detaljiStavke.value = null
+    }
+
+
     watch(odabraniDatum, (novi)=>{
         postaviPrehranuZaDatum(novi)
     })
@@ -183,7 +225,7 @@
                         Nema unosa
                     </li>
                     <li v-for="(stavka, i) in obrok" :key="i">
-                        {{ stavka }}
+                        {{ stavka.naziv }} - {{ stavka.grami }} g - {{ stavka.proteini }} g proteina - {{ stavka.kalorije }} kalorija
                     </li>
                 </ul>
             </div>
@@ -214,7 +256,7 @@
             </b>
         </h3>
         <div v-for="o in sviObroci" :key="o.id" @click="detaljiObroka(o)">
-            {{ o.naziv }} – {{ o.kalorije }} kcal / {{ o.proteini }} g
+            {{ o.naziv }} – {{ o.kalorije }} kcal / {{ o.proteini }} g 
             <b>{{ o.grami }} grama</b>
         </div>
 
@@ -237,6 +279,15 @@
         <div>
             {{ detaljiStavke.podatak.grami }} grama
         </div>
+        
+        <label>
+            Grami:
+            <input type="number" min="1" v-model.number="detaljiStavke.novi_grami" class="border px-2 py-1 w-24"/>
+        </label>
+
+        <button class="bg-red-600 text-white px-4 py-2 rounded" @click="dodajStavku">
+            Dodaj u {{ aktivniObrok }}
+        </button>
     </div>
 
     <div v-else class="min-h-screen flex flex-col items-center px-4 justify-center">
