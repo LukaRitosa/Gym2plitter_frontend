@@ -168,8 +168,8 @@
         const stavka = {
             naziv: p.naziv,
             grami: g,
-            kalorije: (g / 100) * p.kalorije,
-            proteini: (g/100) * p.proteini
+            kalorije: Number(((g / 100) * p.kalorije).toFixed(2)),
+            proteini: Number(((g / 100) * p.proteini).toFixed(2))
         }
 
         danasnjaPrehrana.value.pojedeno[aktivniObrok.value].push(stavka)
@@ -199,13 +199,17 @@
 <template>
     <div v-if="!loading && !izbornikHrane" class="min-h-screen flex flex-col items-center justify-center bg-gray-100 text-red-900 px-4">
 
-        <div>
-            <button @click="nazad">
-                <
+        <div class="flex items-center justify-between bg-white rounded-xl shadow p-4">
+            <button @click="nazad" class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300">
+                ◀
             </button>
-            -
-            <button @click="naprijed">
-                >
+
+            <div class="font-semibold">
+                {{ formatirajDatumISO(odabraniDatum) }}
+            </div>
+
+            <button @click="naprijed" class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300">
+                ▶
             </button>
         </div>
 
