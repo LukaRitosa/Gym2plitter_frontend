@@ -1,5 +1,5 @@
 <script setup>
-    import { ref, onMounted, watch } from 'vue'
+    import { ref, onMounted, watch, computed } from 'vue'
     import { useRouter } from 'vue-router'
     import { collection, doc, getDoc, getDocs, updateDoc } from 'firebase/firestore'
     import { db } from '@/firebase'
@@ -143,6 +143,24 @@
         detaljiStavke.value=null
     }
 
+    const izracunateKalorije=computed(()=>{
+        if(!detaljiStavke.value) return 0
+
+        const g= detaljiStavke.value.novi_grami
+        const p= detaljiStavke.value.podatak
+
+        return Number(((g/100) * p.kalorije).toFixed(2))
+    })
+
+    const izracunatiProteini=computed(()=>{
+        if(!detaljiStavke.value) return 0
+
+        const g= detaljiStavke.value.novi_grami
+        const p= detaljiStavke.value.podatak
+
+        return Number(((g/100) * p.proteini).toFixed(2))
+    })
+
     async function spremiPrehranu() {
         try {
             const user = userStore.currentUser
@@ -168,8 +186,8 @@
         const stavka = {
             naziv: p.naziv,
             grami: g,
-            kalorije: Number(((g / 100) * p.kalorije).toFixed(2)),
-            proteini: Number(((g / 100) * p.proteini).toFixed(2))
+            kalorije: izracunateKalorije.value,
+            proteini: izracunatiProteini.value
         }
 
         danasnjaPrehrana.value.pojedeno[aktivniObrok.value].push(stavka)
@@ -184,6 +202,73 @@
         detaljiStavke.value = null
     }
 
+    async function obrisiStavku(ime_obroka, index){
+        if(!danasnjaPrehrana.value) return 
+
+        const stavka= danasnjaPrehrana.value.pojedeno[ime_obroka][index]
+
+        danasnjaPrehrana.value.ostvareneKalorije-=stavka.kalorije
+        danasnjaPrehrana.value.ostvareniProteini-=stavka.proteini
+
+        danasnjaPrehrana.value.pojedeno[ime_obroka].splice(index, 1) 
+
+        await spremiPrehranu()
+    }
+
+    const editMode=ref(false)
+    const editObrok=ref(null)
+    const editIndex=ref(null)
+
+    function urediStavku(imeObroka, index) {
+        const stavka = danasnjaPrehrana.value.pojedeno[imeObroka][index]
+
+        editObrok.value = imeObroka
+        editIndex.value = index
+
+        detaljiStavke.value = {
+            podatak: {
+                naziv: stavka.naziv,
+                kalorije: (stavka.kalorije / stavka.grami) * 100,
+                proteini: (stavka.proteini / stavka.grami) * 100
+            },
+            novi_grami: stavka.grami
+        }
+
+        editMode.value= true
+        detalji.value = true
+    }
+
+    async function urediUredenuStavku(){
+        const obrok= editObrok.value
+        const index= editIndex.value
+
+        const stara=danasnjaPrehrana.value.pojedeno[obrok][index]
+
+        danasnjaPrehrana.value.ostvareneKalorije-= stara.kalorije
+        danasnjaPrehrana.value.ostvareniProteini-= stara.proteini
+
+        const nova={
+            naziv: stara.naziv,
+            grami: detaljiStavke.value.novi_grami,
+            kalorije: izracunateKalorije.value,
+            proteini: izracunatiProteini.value
+        }
+
+        danasnjaPrehrana.value.pojedeno[obrok][index]= nova
+
+        danasnjaPrehrana.value.ostvareneKalorije+= nova.kalorije
+        danasnjaPrehrana.value.ostvareniProteini+= nova.proteini
+
+        await spremiPrehranu()
+
+        editMode.value=false
+        detalji.value = false
+        detaljiStavke.value = null
+        editIndex.value = null
+        editObrok.value = null
+    }
+
+
 
     watch(odabraniDatum, (novi)=>{
         postaviPrehranuZaDatum(novi)
@@ -197,7 +282,7 @@
 </script>
 
 <template>
-    <div v-if="!loading && !izbornikHrane" class="min-h-screen flex flex-col items-center justify-center bg-gray-100 text-red-900 px-4">
+    <div v-if="!loading && !izbornikHrane && !detalji" class="min-h-screen flex flex-col items-center justify-center bg-gray-100 text-red-900 px-4">
 
         <div class="flex items-center justify-between bg-white rounded-xl shadow p-4">
             <button @click="nazad" class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300">
@@ -229,7 +314,14 @@
                         Nema unosa
                     </li>
                     <li v-for="(stavka, i) in obrok" :key="i">
-                        {{ stavka.naziv }} - {{ stavka.grami }} g - {{ stavka.proteini }} g proteina - {{ stavka.kalorije }} kalorija
+                        <span class="cursor-pointer underline" @click="urediStavku(ime_obroka, i)">
+                            {{ stavka.naziv }} - {{ stavka.grami }} g 
+                            {{ stavka.proteini }} g proteina - {{ stavka.kalorije }} kalorija
+                        </span>
+
+                        <button class="text-red-600 font-bold" @click="obrisiStavku(ime_obroka, i)">
+                            ✕
+                        </button>
                     </li>
                 </ul>
             </div>
@@ -275,10 +367,10 @@
             {{ detaljiStavke.podatak.naziv }}
         </div>
         <div>
-            {{ detaljiStavke.podatak.kalorije }} kcal
+            {{ izracunateKalorije }} kcal
         </div>
         <div>
-            {{ detaljiStavke.podatak.proteini }} g
+            {{ izracunatiProteini }} g
         </div>
         <div>
             {{ detaljiStavke.podatak.grami }} grama
@@ -289,7 +381,11 @@
             <input type="number" min="1" v-model.number="detaljiStavke.novi_grami" class="border px-2 py-1 w-24"/>
         </label>
 
-        <button class="bg-red-600 text-white px-4 py-2 rounded" @click="dodajStavku">
+        <button v-if="editMode" class="bg-blue-600 text-white px-4 py-2 rounded" @click="urediUredenuStavku">
+            Spremi promjene
+        </button>
+
+        <button v-else class="bg-red-600 text-white px-4 py-2 rounded" @click="dodajStavku">
             Dodaj u {{ aktivniObrok }}
         </button>
     </div>
