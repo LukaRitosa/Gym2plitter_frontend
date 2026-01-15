@@ -19,6 +19,7 @@ import kalkulatorTest from '@/views/kalkulatorTest.vue'
 import hranaBiranje from '@/views/hranaBiranje.vue'
 import Prehrana from '@/views/Prehrana.vue'
 import UserHranaMaker from '@/views/UserHranaMaker.vue'
+import UserObrokMaker from '@/views/UserObrokMaker.vue'
 
 
 const router = createRouter({
@@ -169,6 +170,11 @@ const router = createRouter({
       path:'/UserHranaMaker',
       name: 'UserHranaMaker',
       component: UserHranaMaker
+    },
+    {
+      path:'/UserObrokMaker',
+      name: 'UserObrokMaker',
+      component: UserObrokMaker
     }
   ],
 })

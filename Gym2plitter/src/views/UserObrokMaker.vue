@@ -1,28 +1,53 @@
 <script setup>
-    import { ref, watch, computed } from 'vue'
+    import { ref, onMounted, computed } from 'vue'
     import { db } from '@/firebase'
     import { collection, getDocs, addDoc } from 'firebase/firestore';
+    import { useUserStore } from '@/stores/userStore'
+    import { RouterLink } from 'vue-router'
+
+
+    const userStore = useUserStore()
 
     const naziv=ref('')
     const opis=ref('')
 
-    const sastojci=ref([])
+    const sviSastojci=ref([])
     const tempSastojci=ref([])
 
+    const sastojci= ref([])
 
-    const hranaLista=ref([])
+
 
     const poruka = ref('')
     const loading = ref(false)
     const showSastojci = ref(false)
 
-    const dohvatiHranu = async () => {
-        const querySnapshot= await getDocs(collection(db, 'hrana'))
-        hranaLista.value=querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ... doc.data()
-        }))
+    const dohvatiGlobalnuHranu = async () => {
+        const snapshot= await getDocs(collection(db, 'hrana'))
+       
+        return snapshot.docs.map(doc=> ({ id: doc.id, ...doc.data() }))
     }
+
+    const dohvatiCustomHranu= async ()=>{
+        if(!userStore.currentUser) return []
+        const snapshot= await getDocs(collection(db, `users/${userStore.currentUser.uid}/customHrana`))
+      
+        return snapshot.docs.map(doc=> ({ id: doc.id, ...doc.data() }))
+    }
+
+    const dohvatiSvuHranu= async()=>{
+        loading.value= true
+        try{
+            const globalnaHrana= await dohvatiGlobalnuHranu()
+            const customHrana= await dohvatiCustomHranu()
+            sviSastojci.value=[...globalnaHrana, ...customHrana]
+        } catch(error){
+            console.error('Greška pri dohvaćanju hrane: ', error)
+        } finally{
+            loading.value= false
+        }
+    }
+
 
 
     const ukupneKalorije = computed(() => {
@@ -42,12 +67,9 @@
     })
 
 
-
-    dohvatiHranu()
-
     const potvrdiSastojke= () =>{
         sastojci.value=tempSastojci.value.map(id=>{
-            const h=hranaLista.value.find(s=>s.id==id)
+            const h=sviSastojci.value.find(s=>s.id==id)
 
             return {
                 id: h.id,
@@ -67,20 +89,17 @@
         loading.value = true
         
         try {
-            const odabranaHrana = hranaLista.value.filter(h =>
-                sastojci.value.includes(h.id)
-            )
 
             const noviObrok = {
                 naziv: naziv.value,
                 opis: opis.value,
-                odabranaHrana,
-                kalorije: ukupneKalorije.value,
-                proteini: ukupniProteini.value,
+                sastojci: sastojci.value,
+                kalorije: Number(ukupneKalorije.value),
+                proteini: Number(ukupniProteini.value),
                 grami: ukupniGrami.value
             } 
 
-            await addDoc(collection(db, 'obroci'), noviObrok)
+            await addDoc(collection(db, `users/${userStore.currentUser.uid}/customObroci`), noviObrok)
 
             poruka.value = 'obrok uspješno dodan'
             naziv.value = ''
@@ -96,20 +115,23 @@
     
     }
  
+    onMounted(()=>{
+        dohvatiSvuHranu()
+    })
 
 
 </script>
 
 <template>
     
-    <div class="min-h-screen flex items-center justify-center bg-red-900 text-white px-4">
+    <div class="min-h-screen flex items-center justify-center bg-white text-red-900 px-4">
 
         <div>
-            <RouterLink to="/admin" class="w-full bg-red-800 text-white rounded hover:bg-red-400 p-2 font-semibold ">
+            <RouterLink to="/prehrana" class="w-full bg-red-800 text-white rounded hover:bg-red-400 p-2 font-semibold ">
                 Nazad
             </RouterLink>
 
-            <h2 class="text-xl font-bold my-4">Kreiraj novi Split</h2>
+            <h2 class="text-xl font-bold my-4">Kreiraj novi Obrok</h2>
 
             <div class="mb-3">
                 <label class="block font-semibold">Naziv obroka:</label>
@@ -128,14 +150,14 @@
             </div>
         
             <div>
-                <button @click="showSastojci = true" class="bg-red-700 px-3 py-1 rounded mt-3" >
+                <button @click="showSastojci = true" class="bg-red-700 px-3 py-1 rounded mt-3 text-white" >
                     Dodaj / uredi sastojke
                 </button>
             </div>
             <div v-if="showSastojci" class="bg-red-800 p-4 rounded mt-3">
                 <h3 class="font-bold mb-2">Odaberi sastojke</h3>
 
-                <label v-for="h in hranaLista" :key="h.id" class="flex gap-2 items-center">
+                <label v-for="h in sviSastojci" :key="h.id" class="flex gap-2 items-center">
                     <input type="checkbox" :value="h.id" v-model="tempSastojci"/> {{ h.naziv }}
                 </label>
 

@@ -109,6 +109,10 @@
         <div >
             <RouterLink to="/UserHranaMaker" class="w-full bg-green-800 rounded hover:bg-pink-600 p-2 font-semibold"> Hrana Maker</RouterLink>
         </div>
+
+        <div >
+            <RouterLink to="/UserObrokMaker" class="w-full bg-yellow-800 rounded hover:bg-pink-600 p-2 font-semibold"> Obrok Maker</RouterLink>
+        </div>
         
         
         <div class="text-red-500">{{ poruka }}</div>
