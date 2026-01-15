@@ -268,6 +268,73 @@
         editObrok.value = null
     }
 
+    async function preracunajan(){
+        loading.value=true
+
+        try{
+            const user = userStore.currentUser
+            if (!user) return
+
+            const userRef = doc(db, 'users', user.uid)
+
+            const snap= await getDoc(userRef)
+            if(!snap.exists()) return
+
+            let prehrana= [...(snap.data().prehrana || [])]
+
+            if (prehrana.length===0) return
+
+            const zadnji_datum= prehrana[prehrana.length - 1].datum
+
+            const danas= new Date().toLocaleDateString("sv-SE")
+
+            const danasDate = new Date(danas)
+            const zadnjiDate = new Date(zadnji_datum)
+
+            let razlika= Math.floor((danasDate - zadnjiDate) / (1000 * 60 * 60 * 24))
+
+            if (razlika<= 0) return
+
+            else if(razlika>7){
+                razlika=7
+            }
+
+            if(prehrana.length===7){
+                prehrana.splice(0, razlika)
+            }
+
+            let datum= new Date(zadnji_datum)
+
+            for(let i=0; i<razlika; i++){
+                datum.setDate(datum.getDate() + 1)
+                const iso= datum.toLocaleDateString("sv-SE")
+                let dan={
+                    datum: iso,
+                    ostvareneKalorije: 0,
+                    ostvareniProteini: 0,
+                    pojedeno: {
+                        dorucak: [],
+                        rucak: [],
+                        vecera: [],
+                        snack: [],
+                        marenda: [],
+                        nekarakterizirano: []
+                    }
+                }
+                prehrana.push(dan)
+            }
+
+            await updateDoc(userRef, { prehrana })
+
+            userPodaci.value.prehrana = prehrana
+            postaviPrehranuZaDatum(odabraniDatum.value)
+        } catch(error){
+            console.error("Greška pri održavanju prehrane", error)
+        } finally{
+            loading.value= false
+        }
+    }
+
 
 
     watch(odabraniDatum, (novi)=>{
@@ -275,7 +342,8 @@
     })
 
     onMounted(async() => {
-        dohvatiUserPodatke(),
+        await dohvatiUserPodatke(),
+        await preracunajan(),
         await dohvatiHranu(),
         await dohvatiObroke()
     })
