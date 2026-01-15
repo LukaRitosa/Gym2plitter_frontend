@@ -18,6 +18,7 @@ import ObrokMaker from '@/views/ObrokMaker.vue'
 import kalkulatorTest from '@/views/kalkulatorTest.vue'
 import hranaBiranje from '@/views/hranaBiranje.vue'
 import Prehrana from '@/views/Prehrana.vue'
+import UserHranaMaker from '@/views/UserHranaMaker.vue'
 
 
 const router = createRouter({
@@ -161,8 +162,13 @@ const router = createRouter({
     },   
     {
       path: '/prehrana',
-      napre: 'prehrana',
+      name: 'prehrana',
       component: Prehrana
+    },
+    {
+      path:'/UserHranaMaker',
+      name: 'UserHranaMaker',
+      component: UserHranaMaker
     }
   ],
 })

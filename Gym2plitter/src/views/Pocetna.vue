@@ -99,11 +99,15 @@
         </div>
 
         <div >
-            <RouterLink to="/hranaBiranje" class="w-full bg-pink-800 rounded hover:bg-pink-600 p-2 font-semibold"> kalkulator</RouterLink>
+            <RouterLink to="/hranaBiranje" class="w-full bg-pink-800 rounded hover:bg-pink-600 p-2 font-semibold"> biranje hrane</RouterLink>
         </div>
 
         <div >
             <RouterLink to="/prehrana" class="w-full bg-pink-800 rounded hover:bg-pink-600 p-2 font-semibold"> prehrana</RouterLink>
+        </div>
+
+        <div >
+            <RouterLink to="/UserHranaMaker" class="w-full bg-green-800 rounded hover:bg-pink-600 p-2 font-semibold"> Hrana Maker</RouterLink>
         </div>
         
         
