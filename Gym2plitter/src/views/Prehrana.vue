@@ -79,22 +79,61 @@
         izbornikHrane.value = false
     }
 
-    const svaHrana=ref([])
-
-    async function dohvatiHranu(){
-        loading.value=true
+    async function dohvatiCustomHranu(){
         try{
-            const querySnap= await getDocs(collection(db, 'hrana'))
+            const user= userStore.currentUser
+            if(!user) return 
 
-            svaHrana.value= querySnap.docs.map(doc=>({
+            const snap= await getDocs(collection(db, `users/${user.uid}/customHrana`))
+
+            return snap.docs.map(doc=>({
                 id: doc.id,
                 grami: 100,
                 ...doc.data()
             }))
         } catch(error){
+            console.error('Greška dohvaćanju custom hrane', e)
+            return []
+        }
+    }
+
+    const svaHrana=ref([])
+
+    async function dohvatiHranu(){
+        loading.value=true
+        try{
+            const globalSnap= await getDocs(collection(db, 'hrana'))
+
+            const globalna= globalSnap.docs.map(doc=>({
+                id: doc.id,
+                grami: 100,
+                ...doc.data()
+            }))
+
+            const custom= await dohvatiCustomHranu()
+
+            svaHrana.value= [...globalna, ...custom]
+        } catch(error){
             console.error('Greška kod hrane', error)
         } finally{
             loading.value=false
+        }
+    }
+
+    async function dohvatiCustomObroke(){
+        try{
+            const user= userStore.currentUser
+            if(!user) return 
+
+            const snap= await getDocs(collection(db, `users/${user.uid}/customObroci`))
+
+            return snap.docs.map(doc=>({
+                id: doc.id,
+                ...doc.data()
+            }))
+        } catch(error){
+            console.error('Greška dohvaćanju custom hrane', e)
+            return []
         }
     }
 
@@ -103,12 +142,16 @@
     async function dohvatiObroke(){
         loading.value=true
         try{
-            const querySnap= await getDocs(collection(db, 'obroci'))
+            const globalSnap= await getDocs(collection(db, 'obroci'))
 
-            sviObroci.value = querySnap.docs.map(doc => ({
+            const globalni= globalSnap.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }))
+
+            const custom= await dohvatiCustomObroke()
+
+            sviObroci.value= [...globalni, ...custom]
         } catch(error){
             console.error('Greška kod obroka', error)
         } finally{

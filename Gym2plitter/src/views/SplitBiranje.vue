@@ -14,6 +14,21 @@
 
     const userData=ref(null)
 
+    const customSplits= ref([])
+
+    const dohvatiCustomSplitove= async ()=>{
+        const user= userStore.currentUser
+
+        if(!user) return 
+
+        const snap= await getDocs(collection(db, `users/${user.uid}/customSplits`))
+
+        customSplits.value= snap.docs.map(doc=>({
+            id: doc.id,
+            ...doc.data()
+        }))
+    } 
+
 
     const dohvatiSplitove = async () => {
         loading.value=true
@@ -24,6 +39,10 @@
 
         loading.value=false
     }
+
+    const sviSplitovi= computed(()=>{
+        return [...splits.value, ...customSplits.value]
+    })
 
     const dohvatiKorisnika= async() => {
         loading.value=true
@@ -43,7 +62,7 @@
 
         const brojSlobodnihDana = userData.value.slobodni_dani.length
 
-        return splits.value.filter(split => {
+        return sviSplitovi.value.filter(split => {
 
             if (split.broj_dana == brojSlobodnihDana) {
                 return true
@@ -56,7 +75,7 @@
 
     const ostaliSplitovi = computed(() => {
         if (!userData.value?.slobodni_dani) return splits.value
-        return splits.value.filter(split => !preporuceniSplitovi.value.includes(split))
+        return sviSplitovi.value.filter(split => !preporuceniSplitovi.value.includes(split))
     })
 
     const odaberiSplit = async (split) => {
@@ -127,6 +146,7 @@
     onMounted(async () => {
         await dohvatiKorisnika()
         await dohvatiSplitove()
+        await dohvatiCustomSplitove()
     })
 
 </script>

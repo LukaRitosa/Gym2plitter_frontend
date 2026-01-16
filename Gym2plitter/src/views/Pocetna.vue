@@ -113,6 +113,12 @@
         <div >
             <RouterLink to="/UserObrokMaker" class="w-full bg-yellow-800 rounded hover:bg-pink-600 p-2 font-semibold"> Obrok Maker</RouterLink>
         </div>
+
+        <div >
+            <RouterLink to="/UserSplitMaker" class="w-full bg-pink-800 rounded hover:bg-pink-600 p-2 font-semibold"> Split Maker</RouterLink>
+        </div>
+
+
         
         
         <div class="text-red-500">{{ poruka }}</div>

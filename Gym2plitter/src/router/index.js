@@ -20,6 +20,7 @@ import hranaBiranje from '@/views/hranaBiranje.vue'
 import Prehrana from '@/views/Prehrana.vue'
 import UserHranaMaker from '@/views/UserHranaMaker.vue'
 import UserObrokMaker from '@/views/UserObrokMaker.vue'
+import UserSplitMaker from '@/views/UserSplitMaker.vue'
 
 
 const router = createRouter({
@@ -175,6 +176,11 @@ const router = createRouter({
       path:'/UserObrokMaker',
       name: 'UserObrokMaker',
       component: UserObrokMaker
+    },
+    {
+      path:'/UserSplitMaker',
+      name: 'UserSplitMaker',
+      component: UserSplitMaker
     }
   ],
 })
