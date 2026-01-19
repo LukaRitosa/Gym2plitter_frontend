@@ -58,6 +58,7 @@
             }
         })
 
+        tempSastojci.value = []   
         showSastojci.value= false
     }
 
@@ -67,18 +68,14 @@
         loading.value = true
         
         try {
-            const odabranaHrana = hranaLista.value.filter(h =>
-                sastojci.value.includes(h.id)
-            )
-
             const noviObrok = {
                 naziv: naziv.value,
                 opis: opis.value,
-                odabranaHrana,
+                sastojci: sastojci.value,
                 kalorije: ukupneKalorije.value,
                 proteini: ukupniProteini.value,
                 grami: ukupniGrami.value
-            } 
+            }
 
             await addDoc(collection(db, 'obroci'), noviObrok)
 
