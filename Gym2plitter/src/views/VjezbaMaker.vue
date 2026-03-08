@@ -29,7 +29,7 @@
             const novaVjezba={
                 naziv:ime.value,
                 glavni_misic:misic.value,
-                Opis: opis.value,
+                opis: opis.value,
                 ostali_misici:ostalimisici.value,
                 slika: slika.value
             }

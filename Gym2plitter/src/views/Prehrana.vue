@@ -356,7 +356,6 @@
                     ostvareneKalorije: 0,
                     ostvareniProteini: 0,
                     pojedeno: {
-                        dorucak: [],
                         rucak: [],
                         vecera: [],
                         snack: [],
