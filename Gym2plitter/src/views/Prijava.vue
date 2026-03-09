@@ -1,9 +1,7 @@
 <script setup>
     import { RouterLink, useRouter } from 'vue-router'
-    import { useUserStore } from '@/stores/userStore'
     import { ref } from 'vue'
-    import { signInWithEmailAndPassword } from 'firebase/auth'
-    import { auth } from '@/firebase.js'
+    import axios from 'axios'
 
     const email = ref('')
     const password = ref('')
@@ -14,21 +12,22 @@
     const prijava = async () => {
         loading.value = true
         try {
-            const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value)
 
-            userStore.setCurrentUserLogIn({
-                email: userCredential.user.email,
-                uid: userCredential.user.uid,
+            const rez= await axios.post('http://localhost:3000/user/prijava', {
+                email: email.value,
+                lozinka: password.value,
             })
 
-            poruka.value.error = false;
-            poruka.value.message = 'Korisnik prijavljen: ' + JSON.stringify(userCredential.user)
+            const token= rez.data.jwt_token
+
+            localStorage.setItem("token", token)
+
+            poruka.value={ error: false, message: rez.data.message }
 
             router.push("/pocetna")
 
         } catch (error) {
-            poruka.value.error = true
-            poruka.value.message = 'Greška pri prijavi: ' + error.message
+            poruka.value= {error: true, message: error.response.data.greska}
         }
         finally {
             loading.value = false
@@ -36,7 +35,6 @@
     }
 
     const router=useRouter()
-    const userStore=useUserStore()
 
 </script>
 
