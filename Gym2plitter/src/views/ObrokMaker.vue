@@ -1,5 +1,5 @@
 <script setup>
-    import { ref, computed } from 'vue'
+    import { ref, computed, onMounted } from 'vue'
     import axios from 'axios'
 
     const naziv=ref('')
@@ -7,7 +7,6 @@
 
     const sastojci=ref([])
     const tempSastojci=ref([])
-
 
     const hranaLista=ref([])
 
@@ -55,11 +54,15 @@
     })
 
     const potvrdiSastojke= () =>{
+        
         sastojci.value=tempSastojci.value.map(id=>{
-            const h=hranaLista.value.find(s=>s._id==id)
+            const h=hranaLista.value.find(s => s._id.toString()===id)
 
             return {
                 id: h._id.toString(),
+                naziv: h.naziv,
+                kalorije: h.kalorije,
+                proteini: h.proteini,
                 grami: 100
             }
         })
@@ -77,8 +80,7 @@
             const noviObrok = {
                 naziv: naziv.value,
                 opis: opis.value,
-                sastojci: sastojci.value,
-                grami: ukupniGrami.value
+                sastojci: sastojci.value.map(s => ({ id: s.id, grami: s.grami }))
             }
 
             await axios.post('http://localhost:3000/obrok', noviObrok)
@@ -122,7 +124,7 @@
                 Nazad
             </RouterLink>
 
-            <h2 class="text-xl font-bold my-4">Kreiraj novi Split</h2>
+            <h2 class="text-xl font-bold my-4">Kreiraj novi obrok</h2>
 
             <div class="mb-3">
                 <label class="block font-semibold">Naziv obroka:</label>
