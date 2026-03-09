@@ -1,7 +1,6 @@
 <script setup>
-    import { ref, watch, computed } from 'vue'
-    import { db } from '@/firebase'
-    import { collection, getDocs, addDoc } from 'firebase/firestore';
+    import { ref, computed } from 'vue'
+    import axios from 'axios'
 
     const naziv=ref('')
     const opis=ref('')
@@ -16,12 +15,26 @@
     const loading = ref(false)
     const showSastojci = ref(false)
 
-    const dohvatiHranu = async () => {
+    const dohvatiHranu_stara = async () => {
         const querySnapshot= await getDocs(collection(db, 'hrana'))
         hranaLista.value=querySnapshot.docs.map(doc => ({
             id: doc.id,
             ... doc.data()
         }))
+    }
+
+    async function dohvatiHranu(){
+        try {
+            loading.value= true
+
+            const hr = await axios.get('http://localhost:3000/hrana'); 
+            hranaLista.value = hr.data; 
+
+        } catch (error) {
+            console.error('Greška pri dohvaćanju podataka:', error);
+        } finally {
+            loading.value = false
+        }
     }
 
 
@@ -41,19 +54,12 @@
         return sastojci.value.reduce((sum, s)=>sum + s.grami, 0)
     })
 
-
-
-    dohvatiHranu()
-
     const potvrdiSastojke= () =>{
         sastojci.value=tempSastojci.value.map(id=>{
-            const h=hranaLista.value.find(s=>s.id==id)
+            const h=hranaLista.value.find(s=>s._id==id)
 
             return {
-                id: h.id,
-                naziv: h.naziv,
-                kalorije: h.kalorije,
-                proteini: h.proteini,
+                id: h._id.toString(),
                 grami: 100
             }
         })
@@ -72,20 +78,26 @@
                 naziv: naziv.value,
                 opis: opis.value,
                 sastojci: sastojci.value,
-                kalorije: ukupneKalorije.value,
-                proteini: ukupniProteini.value,
                 grami: ukupniGrami.value
             }
 
-            await addDoc(collection(db, 'obroci'), noviObrok)
+            await axios.post('http://localhost:3000/obrok', noviObrok)
 
             poruka.value = 'obrok uspješno dodan'
             naziv.value = ''
             opis.value=''
             sastojci.value = []
         } catch (error) {
-            console.error('Greška:', error)
-            poruka.value = 'Greška pri spremanju.'
+            if (error.response) {
+                console.error('Backend greška:', error.response.data)
+                poruka.value = error.response.data.greska || error.response.data.error || 'Greška pri spremanju.'
+            } else if (error.request) {
+                console.error('Nema odgovora od servera:', error.request)
+                poruka.value = 'Nema odgovora od servera'
+            } else {
+                console.error('Greška:', error.message)
+                poruka.value = 'Greška pri spremanju.'
+            }
         }
         finally{
             loading.value = false
@@ -93,6 +105,10 @@
     
     }
  
+    
+    onMounted(async () => {
+        dohvatiHranu()
+    })
 
 
 </script>
@@ -132,8 +148,8 @@
             <div v-if="showSastojci" class="bg-red-800 p-4 rounded mt-3">
                 <h3 class="font-bold mb-2">Odaberi sastojke</h3>
 
-                <label v-for="h in hranaLista" :key="h.id" class="flex gap-2 items-center">
-                    <input type="checkbox" :value="h.id" v-model="tempSastojci"/> {{ h.naziv }}
+                <label v-for="h in hranaLista" :key="h._id" class="flex gap-2 items-center">
+                    <input type="checkbox" :value="h._id" v-model="tempSastojci"/> {{ h.naziv }}
                 </label>
 
                 <button @click="potvrdiSastojke" class="bg-green-600 px-3 py-1 rounded mt-2">

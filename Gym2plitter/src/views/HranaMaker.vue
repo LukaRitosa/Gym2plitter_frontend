@@ -1,7 +1,6 @@
 <script setup>
     import { ref } from 'vue'
-    import { db } from '@/firebase'
-    import { collection, addDoc } from 'firebase/firestore'
+    import axios from 'axios'
     import { RouterLink } from 'vue-router'
 
 
@@ -23,7 +22,7 @@
                 proteini: proteini.value
             }
         
-            await addDoc(collection(db, 'hrana'), novaHrana)
+            await axios.post('http://localhost:3000/hrana', novaHrana)
 
             poruka.value = 'Hrana uspješno dodana'
 
@@ -31,8 +30,16 @@
             kalorije.value = ''
             proteini.value=''
         }catch (error) {
-            console.error('Greška kod dodavanja hrane:', error)
-            poruka.value = 'Došlo je do greške'
+            if (error.response) {
+                console.error('Backend greška:', error.response.data)
+                poruka.value = error.response.data.greska || error.response.data.error || 'Greška pri spremanju.'
+            } else if (error.request) {
+                console.error('Nema odgovora od servera:', error.request)
+                poruka.value = 'Nema odgovora od servera'
+            } else {
+                console.error('Greška:', error.message)
+                poruka.value = 'Greška pri spremanju.'
+            }
         }
         finally{
             loading.value=false

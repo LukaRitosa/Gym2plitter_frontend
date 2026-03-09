@@ -22,6 +22,8 @@ import UserHranaMaker from '@/views/UserHranaMaker.vue'
 import UserObrokMaker from '@/views/UserObrokMaker.vue'
 import UserSplitMaker from '@/views/UserSplitMaker.vue'
 
+import PROBA from '@/views/PROBA.vue'
+
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -181,6 +183,11 @@ const router = createRouter({
       path:'/UserSplitMaker',
       name: 'UserSplitMaker',
       component: UserSplitMaker
+    },
+    {
+      path:'/proba',
+      name: 'proba',
+      component: PROBA
     }
   ],
 })

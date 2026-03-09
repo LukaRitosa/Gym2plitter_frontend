@@ -1,8 +1,7 @@
 <script setup>
     import { ref } from 'vue'
-    import { db } from '@/firebase'
-    import { collection, addDoc } from 'firebase/firestore'
     import { RouterLink } from 'vue-router'
+    import axios from 'axios'
 
 
     const ime=ref('')
@@ -34,7 +33,7 @@
                 slika: slika.value
             }
         
-            await addDoc(collection(db, 'vjezbe'), novaVjezba)
+            await axios.post('http://localhost:3000/vjezbe', novaVjezba)
 
             poruka.value = 'Vježba uspješno dodana'
 
@@ -77,7 +76,7 @@
                 <div>
                     <label class="block">Glavni mišić:</label>
                     <select v-model="misic" class="border p-1 w-full text-white">
-                        <option v-for="m in svi_misici" class="text-red-900">
+                        <option v-for="m in svi_misici" :key="m" class="text-red-900">
                             {{ m }}
                         </option>
 
@@ -86,7 +85,7 @@
                 <div>
                     <label class="block">Ostali mišići:</label>
                     <div class="flex flex-wrap gap-2 mt-1">
-                        <label v-for="m in svi_misici">
+                        <label v-for="m in svi_misici" :key="m">
                             <input type="checkbox" :value="m" v-model="ostalimisici" :disabled="m==misic"/>
                             {{ m }}
                         </label>

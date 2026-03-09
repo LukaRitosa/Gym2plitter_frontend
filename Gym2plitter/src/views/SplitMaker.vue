@@ -1,7 +1,6 @@
 <script setup>
-    import { ref, watch, computed } from 'vue'
-    import { db } from '@/firebase'
-    import { collection, getDocs, addDoc } from 'firebase/firestore';
+    import { ref, watch, computed, onMounted } from 'vue'
+    import axios from 'axios';
 
     const naziv=ref('')
     const broj_dana=ref(0)
@@ -12,13 +11,26 @@
     const poruka = ref('')
     const loading = ref(false)
 
-    const dohvatiVjezbe = async () => {
-        const querySnapshot= await getDocs(collection(db, 'vjezbe'))
-        vjezbe.value=querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            naziv: doc.data().naziv,
-            glavni_misic: doc.data().glavni_misic
-        }))
+    async function dohvatiVjezbe(){
+        try {
+            loading.value= true
+
+            const vj = await axios.get('http://localhost:3000/vjezbe'); 
+            vjezbe.value = vj.data; 
+
+            console.log(vjezbe)
+        } catch (error) {
+            if (error.response) {
+                console.error('Backend greška:', error.response.data)
+                console.error('Status:', error.response.status)
+            } else if (error.request) {
+                console.error('Nema odgovora od servera:', error.request)
+            } else {
+                console.error('Greška:', error.message)
+            }
+        } finally {
+            loading.value = false
+        }
     }
 
     const grupiraneVjezbe = computed(() => {
@@ -32,7 +44,6 @@
         return grupe
     })
 
-    dohvatiVjezbe()
 
 
     const updateDani = () => {
@@ -50,49 +61,47 @@
     const stvoriSplit = async () => {
         loading.value = true
         try {
-            const kalendar = {}
-
-            for (let i = 0; i < 14; i++) {
-                const dummyDate = new Date(2004, 7, 6 + i) 
-                    .toISOString()
-                    .split('T')[0]
-
-                kalendar[dummyDate] = {
-                    split_dan_id: null,
-                    naziv: "Odmor"
-                }
-            }
-
             const noviSplit = {
                 naziv: naziv.value,
                 broj_dana: broj_dana.value,
                 opis: opis.value,
                 dani: dani.value.map(dan => ({
-                    ...dan,
-                    setovi: dan.vjezbe.reduce((acc, vjezbaId) => {
-                        acc[vjezbaId] = 1
-                        return acc
-                    }, {})
-                })),
-                kalendar: kalendar
+                    dan: dan.dan,
+                    naziv: dan.naziv,
+                    vjezbe: dan.vjezbe
+                }))
             }
 
-            await addDoc(collection(db, 'splits'), noviSplit)
+            await axios.post('http://localhost:3000/split', noviSplit)
 
             poruka.value = 'Split uspješno dodan'
+
             naziv.value = ''
             opis.value=''
             broj_dana.value = 0
             updateDani()
         } catch (error) {
-            console.error('Greška:', error)
-            poruka.value = 'Greška pri spremanju.'
+            if (error.response) {
+                console.error('Backend greška:', error.response.data)
+                poruka.value = error.response.data.greska || error.response.data.error || 'Greška pri spremanju.'
+            } else if (error.request) {
+                console.error('Nema odgovora od servera:', error.request)
+                poruka.value = 'Nema odgovora od servera'
+            } else {
+                console.error('Greška:', error.message)
+                poruka.value = 'Greška pri spremanju.'
+            }
         }
         finally{
             loading.value = false
         }
     
     }
+
+
+    onMounted(() =>{
+        dohvatiVjezbe()
+    })
  
 
 
@@ -135,7 +144,7 @@
                     <div class="flex flex-wrap gap-2">
                         <h4 class="font-semibold mb-1">{{ misic }}</h4>
                         <label v-for="v in grupa" :key="v.id" class="inline-flex items-center gap-1">
-                            <input type="checkbox" :value="v.id" v-model="dan.vjezbe"/>
+                            <input type="checkbox" :value="v._id.toString()" v-model="dan.vjezbe"/>
                             {{ v.naziv }}
                         </label>
                     </div>
