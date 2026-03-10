@@ -1,6 +1,6 @@
 <script setup>
     import { RouterLink, useRouter } from 'vue-router'
-    import { ref } from 'vue'
+    import { ref, onMounted } from 'vue'
     import axios from 'axios'
 
     const email = ref('')
@@ -8,12 +8,14 @@
     const poruka=ref({ error: false, message: '' })
 
     const loading = ref(false)
+
+    const ruta= import.meta.env.VITE_BASE_URL
     
     const prijava = async () => {
         loading.value = true
         try {
 
-            const rez= await axios.post('http://localhost:3000/user/prijava', {
+            const rez= await axios.post(`${ruta}/user/prijava`, {
                 email: email.value,
                 lozinka: password.value,
             })
@@ -35,6 +37,13 @@
     }
 
     const router=useRouter()
+
+    onMounted(()=>{
+        const token= localStorage.getItem("token")
+        if(token){
+            router.push("/pocetna")
+        }
+    })
 
 </script>
 

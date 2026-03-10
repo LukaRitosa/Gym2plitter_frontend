@@ -1,16 +1,17 @@
 <script setup>
     import { RouterLink, useRouter } from 'vue-router'
-    import { useUserStore } from '@/stores/userStore'
     import { ref, computed } from 'vue'
-    import { updateDoc, doc } from "firebase/firestore"
-    import { db } from '@/firebase' 
+    import axios from 'axios'
 
 
 
     const router=useRouter()
-    const userStore=useUserStore()
+    
+    const odgovori= ref([])
 
     const loading=ref(false)
+
+    const ruta= import.meta.env.VITE_BASE_URL
 
     const dani_u_tjednu=[
         'ponedjeljak',  'utorak', 'srijeda', 'četvrtak', 'petak', 'subota', 'nedjelja', 
@@ -30,18 +31,19 @@
 
     const posaljiOdgovore = async () => {
         loading.value=true
-        const user= userStore.currentUser
 
         try{
-            await updateDoc(doc(db, "users", user.uid), {
-                slobodni_dani: odgovori.value,
-                slobodnoVrijeme: `${brojSlobodnihDana.value} ${brojSlobodnihDana.value===1 ? 'dan' : 'dana'}`
-            })
+            const token= localStorage.getItem("token")
+            await axios.patch(
+                `${ruta}/user/test`, 
+                { slobodni_dani: odgovori.value },
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
             router.push("/pocetna")
         }
         catch (error) {
             console.error("Greška pri spremanju:", error)
-            alert("Došlo je do greške.")
+            alert(error.response.data.greska)
         }
         finally{
             loading.value=false
@@ -49,7 +51,6 @@
     }    
 
 
-    const odgovori= ref([])
 
 
 </script>

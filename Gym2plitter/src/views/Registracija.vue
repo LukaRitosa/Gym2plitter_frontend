@@ -1,10 +1,6 @@
 <script setup>
     import { RouterLink, useRouter } from 'vue-router'
     import { ref } from 'vue'
-    import { createUserWithEmailAndPassword } from 'firebase/auth'
-    import { auth } from '@/firebase.js'
-    import { setDoc, doc } from "firebase/firestore"
-    import { db } from "@/firebase.js"
     import axios from 'axios'
     
     const username=ref("")    
@@ -16,7 +12,7 @@
     const router=useRouter()
     const loading = ref(false)
 
-    
+    const ruta= import.meta.env.VITE_BASE_URL
 
     
     const registracija = async () => {
@@ -28,7 +24,7 @@
             return
         }
         try {     
-            await axios.post('http://localhost:3000/user/registracija', {
+            await axios.post(`${ruta}/user/registracija`, {
                 username: username.value,
                 email: email.value,
                 lozinka: password.value

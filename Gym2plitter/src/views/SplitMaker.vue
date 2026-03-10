@@ -11,11 +11,13 @@
     const poruka = ref('')
     const loading = ref(false)
 
+    const ruta= import.meta.env.VITE_BASE_URL
+
     async function dohvatiVjezbe(){
         try {
             loading.value= true
 
-            const vj = await axios.get('http://localhost:3000/vjezbe'); 
+            const vj = await axios.get(`${ruta}/vjezbe`); 
             vjezbe.value = vj.data; 
 
             console.log(vjezbe)
@@ -72,7 +74,7 @@
                 }))
             }
 
-            await axios.post('http://localhost:3000/split', noviSplit)
+            await axios.post(`${ruta}/split`, noviSplit)
 
             poruka.value = 'Split uspješno dodan'
 

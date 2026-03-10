@@ -12,6 +12,8 @@
 
     const loading = ref(false)
 
+    const ruta= import.meta.env.VITE_BASE_URL
+
     const dodajHranu=async ()=>{
         loading.value=true
         try{
@@ -22,7 +24,7 @@
                 proteini: proteini.value
             }
         
-            await axios.post('http://localhost:3000/hrana', novaHrana)
+            await axios.post(`${ruta}/hrana`, novaHrana)
 
             poruka.value = 'Hrana uspješno dodana'
 

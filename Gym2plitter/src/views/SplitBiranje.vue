@@ -1,11 +1,8 @@
 <script setup>
     import { RouterLink, useRouter } from 'vue-router'
     import { ref, onMounted, computed } from 'vue'
-    import { collection, getDocs, doc, setDoc, getDoc } from 'firebase/firestore'
-    import { useUserStore } from '@/stores/userStore'
-    import { db } from '@/firebase'
+    import axios from 'axios'
 
-    const userStore= useUserStore()
     const splits=ref([])
     const router=useRouter()
     const loading=ref(false)
@@ -14,47 +11,50 @@
 
     const userData=ref(null)
 
-    const customSplits= ref([])
+    const ruta= import.meta.env.VITE_BASE_URL
 
-    const dohvatiCustomSplitove= async ()=>{
-        const user= userStore.currentUser
-
-        if(!user) return 
-
-        const snap= await getDocs(collection(db, `users/${user.uid}/customSplits`))
-
-        customSplits.value= snap.docs.map(doc=>({
-            id: doc.id,
-            ...doc.data()
-        }))
-    } 
 
 
     const dohvatiSplitove = async () => {
         loading.value=true
 
-        const snapshot = await getDocs(collection(db, 'splits'))
-        splits.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-        splitovi_ucitani.value=true
-
-        loading.value=false
+        try {
+            const token = localStorage.getItem("token")
+            const rez = await axios.get(
+                `${ruta}/split/biranje`,
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            ) 
+            splits.value = rez.data
+            splitovi_ucitani.value = true
+        } catch (error) {
+            console.error(error)
+            alert(error.response.data.greska)
+        } finally {
+            loading.value = false
+        }
     }
 
-    const sviSplitovi= computed(()=>{
-        return [...splits.value, ...customSplits.value]
-    })
+    const sviSplitovi= computed(() => splits.value)
 
     const dohvatiKorisnika= async() => {
         loading.value=true
 
-        const userDocRef = doc(db, `users/${userStore.currentUser.uid}`)
-        const userSnap = await getDoc(userDocRef)
-
-        if (userSnap.exists()) {
-            userData.value = userSnap.data()
+        try{
+            const token = localStorage.getItem("token")
+            
+            const rez= await axios.get(
+                `${ruta}/user/profil`, 
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
+            userData.value= rez.data
+        }catch (error){
+            console.log(error)
+            alert(error.response.data.greska)
+        } finally{
+            loading.value= false
         }
-
-        loading.value=false
     }
 
     const preporuceniSplitovi= computed (() => {        
@@ -62,81 +62,31 @@
 
         const brojSlobodnihDana = userData.value.slobodni_dani.length
 
-        return sviSplitovi.value.filter(split => {
-
-            if (split.broj_dana == brojSlobodnihDana) {
-                return true
-            }
-            return false
-        }).sort((a, b) => a.broj_dana - b.broj_dana)
+        return sviSplitovi.value.filter(split => split.broj_dana=== brojSlobodnihDana)
     })
 
     
 
-    const ostaliSplitovi = computed(() => {
-        if (!userData.value?.slobodni_dani) return splits.value
-        return sviSplitovi.value.filter(split => !preporuceniSplitovi.value.includes(split))
-    })
+    const ostaliSplitovi = computed(() => sviSplitovi.value.filter(split => !preporuceniSplitovi.value.includes(split)))
 
     const odaberiSplit = async (split) => {
         loading.value = true
 
         try {
-            const userDocRef = doc(db, `users/${userStore.currentUser.uid}`)
-            const userSnap = await getDoc(userDocRef)
+            const token= localStorage.getItem("token")
 
-            if (!userSnap.exists()) {
-                alert("Korisnički podaci nisu pronađeni")
-                return
-            }
-
-            const userData = userSnap.data()
-            const slobodniDani = userData.slobodni_dani || []
-
-            const split_kopija = JSON.parse(JSON.stringify(split))
-
-            const kalendar = {}
-            let trenutniDanSplita = 0
-
-            const danas = new Date()
-
-            for (let i = 0; i < 14; i++) {
-                const datum = new Date(danas)
-                datum.setDate(danas.getDate() + i)
-                const datumISO = datum.toLocaleDateString("sv-SE") 
-                const danUTjednu = datum.toLocaleDateString("hr-HR", { weekday: "long" })
-
-                if (slobodniDani.includes(danUTjednu)) {
-                    const danSplita = split_kopija.dani[trenutniDanSplita % split_kopija.broj_dana]
-
-                    kalendar[datumISO] = {
-                        split_dan_id: danSplita.dan,
-                        naziv: danSplita.naziv
-                    }
-
-                    trenutniDanSplita++
-                } else {
-                    kalendar[datumISO] = {
-                        split_dan_id: null,
-                        naziv: "Odmor"
-                    }
+            await axios.post(
+                `${ruta}/split/user_split/${split._id.toString()}`,
+                {},
+                {
+                    headers: { Authorization: `Bearer ${token}` }
                 }
-            }
-
-            split_kopija.kalendar = kalendar
-
-            const userSplitRef = doc(db, `users/${userStore.currentUser.uid}/splits/${split.id}`)
-            await setDoc(userSplitRef, split_kopija)
-
-            await setDoc(userDocRef, {
-                trenutniSplit: split.id
-            }, { merge: true })
-
+            )
 
             router.push("/Split")
         } catch (error) {
             console.error("Greška pri spremanju splita:", error)
-            alert("Došlo je do greške pri spremanju splita: " + error.message)
+            alert(error.response.data.greska)
         } finally {
             loading.value = false
         }
@@ -146,7 +96,6 @@
     onMounted(async () => {
         await dohvatiKorisnika()
         await dohvatiSplitove()
-        await dohvatiCustomSplitove()
     })
 
 </script>

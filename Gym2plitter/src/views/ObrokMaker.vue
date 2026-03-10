@@ -14,19 +14,13 @@
     const loading = ref(false)
     const showSastojci = ref(false)
 
-    const dohvatiHranu_stara = async () => {
-        const querySnapshot= await getDocs(collection(db, 'hrana'))
-        hranaLista.value=querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ... doc.data()
-        }))
-    }
+    const ruta= import.meta.env.VITE_BASE_URL
 
     async function dohvatiHranu(){
         try {
             loading.value= true
 
-            const hr = await axios.get('http://localhost:3000/hrana'); 
+            const hr = await axios.get(`${ruta}/hrana`); 
             hranaLista.value = hr.data; 
 
         } catch (error) {
@@ -83,7 +77,7 @@
                 sastojci: sastojci.value.map(s => ({ id: s.id, grami: s.grami }))
             }
 
-            await axios.post('http://localhost:3000/obrok', noviObrok)
+            await axios.post(`${ruta}/obrok`, noviObrok)
 
             poruka.value = 'obrok uspješno dodan'
             naziv.value = ''

@@ -1,56 +1,54 @@
 <script setup>
     import { RouterLink, useRouter } from 'vue-router'
-    import { useUserStore } from '@/stores/userStore'
     import { onMounted, ref } from 'vue'
-    import { signOut } from 'firebase/auth';
-    import { auth, db } from '@/firebase.js'
-    import { doc, getDoc } from 'firebase/firestore'
+    import axios from 'axios'
 
 
     const userPodaci = ref(null)
     const loading = ref(null)
+    const poruka=ref("") 
+
+    const router=useRouter()
+
+    const ruta= import.meta.env.VITE_BASE_URL
     
 
     onMounted(async () => {
         
         loading.value=true
 
-        if (currentUser && currentUser.uid) {
-            const docRef = doc(db, "users", currentUser.uid)
-            const docSnap = await getDoc(docRef)
-
-            if (docSnap.exists()) {
-                userPodaci.value = docSnap.data()
-            }
+        try{
+            const token= localStorage.getItem("token")
+            
+            const rez= await axios.get(
+                `${ruta}/user/profil`, 
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
+            userPodaci.value= rez.data
+        }catch(error){
+            localStorage.removeItem("token")
+            router.push("/")
+        }finally{
+            loading.value= false
         }
-
-
-        loading.value=false
-    })
+    }) 
 
 
 
     const logout = () => {
-        signOut(auth);
-        userStore.logout
+        localStorage.removeItem("token")
         router.push("/")
     }
 
-    const poruka=ref("") 
-
-    const router=useRouter()
-    const userStore=useUserStore()
-
-    const currentUser = userStore.currentUser
 
 
 </script>
 
 <template>
 
-    <form @submit.prevent="logout" class="bg-red-50 rounded" v-if=!loading>
-        <button class="border bg-red-500 text-white hover:bg-red-300 p-2 rounded m-4 font-semibold" type="submit">Odjava</button>
-    </form>
+    <button @click="logout" class="border bg-red-500 text-white hover:bg-red-300 p-2 rounded m-4 font-semibold" v-if=!loading>
+        Odjava
+    </button>
     
     <div v-if="!loading" class="flex flex-col items-center justify-center h-screen bg-red-50 text-red-950 gap-6 p-6">
 

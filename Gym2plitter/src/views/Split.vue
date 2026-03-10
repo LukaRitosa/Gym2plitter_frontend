@@ -1,66 +1,61 @@
 <script setup>
     import { RouterLink, useRouter } from 'vue-router'
     import { ref, onMounted } from 'vue'
-    import { doc, getDoc, deleteDoc, updateDoc } from 'firebase/firestore'
-    import { db } from '@/firebase'
-    import { useUserStore } from '@/stores/userStore'
+    import axios from 'axios'
 
-    const userStore = useUserStore()
     const trenutniSplit = ref(null)
     const splitPodaci = ref(null)
     const router=useRouter()
     const loading=ref(false) 
 
+    const ruta= import.meta.env.VITE_BASE_URL
+
+    const token= localStorage.getItem("token")
+
     const danas = ref(new Date().toLocaleDateString("sv-SE"))
 
 
+
+
     const dohvatiTrenutniSplit = async () => {
+        loading.value=true
 
-        const userDocRef = doc(db, `users/${userStore.currentUser.uid}`)
-        const userDocSnap = await getDoc(userDocRef)
-
-        if (userDocSnap.exists()) {
-            const data = userDocSnap.data()
-            trenutniSplit.value = data.trenutniSplit
-
-        } else {
-            console.warn("User dokument ne postoji.")
+        try {
+            const rez = await axios.get(
+                `${ruta}/split/trenutni`,
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            ) 
+            if (!rez.data) {
+                splitPodaci.value = null
+                trenutniSplit.value = null
+                loading.value = false
+                return
+            }
+            splitPodaci.value= rez.data
+            trenutniSplit.value = rez.data._id.toString()
+        } catch (error) {
+            console.error(error)
+            alert(error.response.data.greska)
+        } finally {
+            loading.value = false
         }
     }
 
 
-    const dohvatiSplit = async () => {
-        if (!userStore.currentUser || !trenutniSplit.value) return
-
-        const splitRef = doc(db, `users/${userStore.currentUser.uid}/splits/${trenutniSplit.value}`)
-        const splitSnap = await getDoc(splitRef)
-
-        if (splitSnap.exists()) {
-            splitPodaci.value = splitSnap.data()
-        }
-    }
-
-    const obrisiSplit = async () => {
-        if (!userStore.currentUser || !trenutniSplit.value) return
-        
-        const potvrda = confirm("Jeste li sigurni da želite obrisati ovaj split? Ova radnja je nepovratna.")
-        if (!potvrda) return
+    const obrisiSplit = async (split_id) => {        /////////////////
 
         loading.value = true
         try {
-            const splitRef = doc(db, `users/${userStore.currentUser.uid}/splits/${trenutniSplit.value}`)
-            await deleteDoc(splitRef)
-
-            const userDocRef = doc(db, `users/${userStore.currentUser.uid}`)
-            await updateDoc(userDocRef, {
-                trenutniSplit: ''
-            })
-
-            trenutniSplit.value = null
-
-            router.push('/UserSplitovi')
+            await axios.delete(
+                `${ruta}/split/user_split/${split_id}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
             
             alert("Split je uspješno obrisan!")
+
+            router.push('/UserSplitovi')
         } catch (error) {
             console.error("Greška pri brisanju splita:", error)
             alert("Došlo je do greške pri brisanju splita.")
@@ -71,7 +66,6 @@
 
     onMounted(async () => {
         await dohvatiTrenutniSplit()
-        await dohvatiSplit()
     })
 </script>
 
@@ -84,7 +78,7 @@
         </div>
 
         <div>
-            <button @click="obrisiSplit()" class="w-full bg-black text-white rounded hover:bg-red-400 p-2 font-semibold">
+            <button @click="obrisiSplit(trenutniSplit.value)" class="w-full bg-black text-white rounded hover:bg-red-400 p-2 font-semibold">
                 Obriši split
             </button>
         </div>
@@ -99,7 +93,7 @@
 
         <div class="grid grid-cols-1 gap-4 my-4">
             <div v-for="dan in splitPodaci.dani" :key="dan.dan" class="p-6 rounded-lg border border-gray-300 shadow-md bg-red-900 text-white cursor-pointer hover:bg-red-700 transition"
-            :class="{'ring-4 ring-red-300': splitPodaci.kalendar[danas].split_dan_id === dan.dan}" @click="router.push(`/UrediDan/${dan.dan}`)">
+            :class="{'ring-4 ring-red-300': splitPodaci.kalendar[danas.value]?.split_dan_id === dan.dan}" @click="router.push(`/UrediDan/${dan.dan}`)">
                 Dan {{ dan.dan }}  {{ dan.naziv }} ({{ dan.vjezbe.length }} vježba)
             </div>
         </div>

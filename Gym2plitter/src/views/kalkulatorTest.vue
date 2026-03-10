@@ -1,20 +1,18 @@
 <script setup>
     import { RouterLink, useRouter } from 'vue-router'
-    import { useUserStore } from '@/stores/userStore'
     import { ref, computed } from 'vue'
-    import { updateDoc, doc } from "firebase/firestore"
-    import { db } from '@/firebase' 
+    import axios from 'axios'
 
 
 
     const router=useRouter()
-    const userStore=useUserStore()
 
     const loading=ref(false)
 
     const ciljevi= ['mršavljanje', 'održavanje', 'povećanje mase']
     const sex= ['m', 'f']
 
+    const ruta= import.meta.env.VITE_BASE_URL
 
 
     const bmr= computed(() => {
@@ -52,22 +50,26 @@
 
     const posaljiOdgovore= async ()=>{
         loading.value= true
-        const user= userStore.currentUser
 
         try{
-            await updateDoc(doc(db, 'users', user.uid),{
-                tezina: form.value.tezina,
-                visina: form.value.visina,
-                cilj: form.value.cilj,
-                dob: form.value.dob,
-                sex: form.value.sex,
-                cilj_kalorije: ciljKalorije.value,
-                cilj_proteini: ciljProteini.value
-            })
+            const token= localStorage.getItem("token")
+            await axios.patch(
+                `${ruta}/user/kalkulator`,
+                {
+                    tezina: form.value.tezina,
+                    visina: form.value.visina,
+                    dob: form.value.dob,
+                    sex: form.value.sex,
+                    cilj: form.value.cilj
+                },
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            )
             router.push('/pocetna')
         } catch (error){
             console.log(error)
-            alert("Došlo je do greške.")
+            alert(error.response.data.greska)
         } finally{
             loading.value= false
         }

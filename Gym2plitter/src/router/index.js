@@ -39,14 +39,16 @@ const router = createRouter({
       component: Registracija,
     },
     {
-       path: '/pocetna',
-       name: 'Pocetna',
-       component: Pocetna,
+      path: '/pocetna',
+      name: 'Pocetna',
+      component: Pocetna,
+      meta: {requiresAuth: true}
     },
     {
-       path: '/test',
-       name: 'Test',
-       component: Test
+      path: '/test',
+      name: 'Test',
+      component: Test,
+      meta: {requiresAuth: true}
     },
     {
       path: '/adminPrijava',
@@ -57,132 +59,104 @@ const router = createRouter({
       path: '/admin',
       name: 'Admin',
       component: Admin,
-      beforeEnter: (to, from, next) => {
-        const isAdmin = localStorage.getItem('admin') === 'true'
-
-        if (isAdmin) {
-          next() 
-        } else {
-          next('/adminPrijava')
-        }
-      }
+      meta: { requiresAdmin: true }
     },
     {
       path: '/vjezbaMaker',
       name: 'VjezbaMaker',
       component: VjezbaMarer,
-      beforeEnter: (to, from, next) => {
-      const isAdmin = localStorage.getItem('admin') === 'true'
-
-        if (isAdmin) {
-          next() 
-        } else {
-          next('/adminPrijava')
-        }
-      }
+      meta: { requiresAdmin: true }
     },
     {
       path: '/splitMaker',
       name: 'SplitMaker',
       component: SplitMaker,
-      beforeEnter: (to, from, next) => {
-      const isAdmin = localStorage.getItem('admin') === 'true'
-
-        if (isAdmin) {
-          next() 
-        } else {
-          next('/adminPrijava')
-        }
-      }
+      meta: { requiresAdmin: true }
     },
     {
-       path: '/SplitBiranje',
-       name: 'SplitBiranje',
-       component: SplitBiranje,
+      path: '/SplitBiranje',
+      name: 'SplitBiranje',
+      component: SplitBiranje,
+      meta: {requiresAuth: true}
     },
     {
-       path: '/Split',
-       name: 'Split',
-       component: Split,
+      path: '/Split',
+      name: 'Split',
+      component: Split,
+      meta: {requiresAuth: true}
     },
     {
-       path: '/UserSplitovi',
-       name: 'UserSplitovi',
-       component: UserSplitovi,
+      path: '/UserSplitovi',
+      name: 'UserSplitovi',
+      component: UserSplitovi,
+      meta: {requiresAuth: true}
     },
     {
       path: '/UrediDan/:danId',
       name: 'UrediDan',
       component: UrediDan,
-      props: true
+      props: true,
+      meta: {requiresAuth: true}
     },
     {
-       path: '/UserVjezbaMaker',
-       name: 'UserVjezbaMaker',
-       component: UserVjezbaMaker,
+      path: '/UserVjezbaMaker',
+      name: 'UserVjezbaMaker',
+      component: UserVjezbaMaker,
+      meta: {requiresAuth: true}
     },
     {
       path: '/kalendar',
       name: 'kalendar',
       component: Kalendar,
+      meta: {requiresAuth: true}
     }, 
     {
       path: '/hranaMaker',
       name: 'HranaMaker',
       component: HranaMaker,
-      beforeEnter: (to, from, next) => {
-      const isAdmin = localStorage.getItem('admin') === 'true'
-
-        if (isAdmin) {
-          next() 
-        } else {
-          next('/adminPrijava')
-        }
-      }
+      meta: { requiresAdmin: true }
     }, 
     {
       path: '/obrokMaker',
       name: 'ObrokMaker',
       component: ObrokMaker,
-      beforeEnter: (to, from, next) => {
-      const isAdmin = localStorage.getItem('admin') === 'true'
-
-        if (isAdmin) {
-          next() 
-        } else {
-          next('/adminPrijava')
-        }
-      }
+      meta: { requiresAdmin: true }
     },
     {
        path: '/kalkulatorTest',
        name: 'kalkulatorTest',
-       component: kalkulatorTest
+       component: kalkulatorTest,
+       meta: {requiresAuth: true}
     }, 
     {
        path: '/hranaBiranje',
        name: 'hranaBiranje',
-       component: hranaBiranje
+       component: hranaBiranje,
+       meta: {requiresAuth: true}
     },   
     {
       path: '/prehrana',
       name: 'prehrana',
-      component: Prehrana
+      component: Prehrana,
+      meta: {requiresAuth: true}
     },
     {
       path:'/UserHranaMaker',
       name: 'UserHranaMaker',
-      component: UserHranaMaker
+      component: UserHranaMaker,
+      meta: {requiresAuth: true}
     },
     {
       path:'/UserObrokMaker',
       name: 'UserObrokMaker',
-      component: UserObrokMaker
+      component: UserObrokMaker,
+      meta: {requiresAuth: true}
     },
     {
       path:'/UserSplitMaker',
       name: 'UserSplitMaker',
-      component: UserSplitMaker
+      component: UserSplitMaker,
+      meta: {requiresAuth: true}
     },
     {
       path:'/proba',
@@ -190,6 +164,23 @@ const router = createRouter({
       component: PROBA
     }
   ],
+})
+
+router.beforeEach((to, from, next)=>{
+  const token= localStorage.getItem("token")
+  const isAdmin= localStorage.getItem("admin")=== "true"
+
+  if(to.meta.requiresAuth && !token){
+    next("/")
+    return
+  }
+
+  if(to.meta.requiresAdmin && !isAdmin){
+    next("/adminPrijava")
+    return
+  }
+  next()
+  return
 })
 
 

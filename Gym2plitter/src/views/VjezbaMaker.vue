@@ -14,6 +14,8 @@
 
     const loading = ref(false)
 
+    const ruta= import.meta.env.VITE_BASE_URL
+
 
     const svi_misici=[
         'Prsa',  'Trapez (gornji dio leđa)', 'Lat (najširi mišić leđa)', 
@@ -33,7 +35,7 @@
                 slika: slika.value
             }
         
-            await axios.post('http://localhost:3000/vjezbe', novaVjezba)
+            await axios.post(`${ruta}/vjezbe`, novaVjezba)
 
             poruka.value = 'Vježba uspješno dodana'
 
