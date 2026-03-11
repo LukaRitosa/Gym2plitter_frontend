@@ -75,7 +75,7 @@
             console.log(noviSplit)
 
             await axios.post(
-                `${ruta}/custom`, 
+                `${ruta}/split/custom`, 
                 noviSplit,
                 { headers: { Authorization: `Bearer ${token}` } }
             ) 
