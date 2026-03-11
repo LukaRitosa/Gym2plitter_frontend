@@ -44,7 +44,7 @@
     }
 
 
-    const obrisiSplit = async (split_id) => {        /////////////////
+    const obrisiSplit = async (split_id) => {    
 
         loading.value = true
         try {
@@ -57,11 +57,11 @@
 
             router.push('/UserSplitovi')
         } catch (error) {
-            console.error("Greška pri brisanju splita:", error)
-            alert("Došlo je do greške pri brisanju splita.")
+            console.error(error)
+            alert(error.response.data.greska)
         } finally {
             loading.value = false
-        }
+        } 
     }
 
     onMounted(async () => {
@@ -78,7 +78,7 @@
         </div>
 
         <div>
-            <button @click="obrisiSplit(trenutniSplit.value)" class="w-full bg-black text-white rounded hover:bg-red-400 p-2 font-semibold">
+            <button @click="obrisiSplit(trenutniSplit)" class="w-full bg-black text-white rounded hover:bg-red-400 p-2 font-semibold">
                 Obriši split
             </button>
         </div>

@@ -1,53 +1,64 @@
 <script setup>
     import { RouterLink, useRouter } from 'vue-router'
     import { ref, onMounted } from 'vue'
-    import { collection, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore'
-    import { useUserStore } from '@/stores/userStore'
-    import { db } from '@/firebase'
+    import axios from 'axios'
 
-    const userStore = useUserStore()
+
     const userPodaci = ref(null)
     const splits=ref([])
     const loading = ref(false)
     const router=useRouter()
 
+    const ruta = import.meta.env.VITE_BASE_URL
+    const token = localStorage.getItem("token")
+
     const dohvatiUserSplitove= async() =>{
         loading.value=true
-        if (!userStore.currentUser) return
 
-        const userSplitsRef = collection(db, `users/${userStore.currentUser.uid}/splits`)
-        const snapshot= await getDocs(userSplitsRef)
+        try{
+            const rez= await axios.get(
+                `${ruta}/split/user_split`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
 
-        splits.value=snapshot.docs.map(doc => ({
-            id: doc.id, ...doc.data()
-        }))
-        loading.value=false
+            splits.value= rez.data
+        }catch (error){
+            console.log(error)
+            alert(error.response.data.greska)
+        } finally{
+            loading.value= false
+        }
     }
     
     const getUser= async () => {
-        loading.value=true
-        if (userStore.currentUser?.uid) {
-            const docSnap = await getDoc(doc(db, 'users', userStore.currentUser.uid))
-            if (docSnap.exists()) {
-                userPodaci.value = docSnap.data()
-            }
+        try{
+            loading.value= true
+
+            const rez= await axios.get(
+                `${ruta}/user/profil`, 
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
+            userPodaci.value= rez.data
+        }catch(error){
+            console.log(error)
+            alert(error.response.data.greska)
+        } finally{
+            loading.value= false
         }
-        loading.value=false
     }
 
     const odaberiSplit= async (splitId) =>{
-        if (!userStore.currentUser?.uid) return
-
         try {
-            const userRef = doc(db, 'users', userStore.currentUser.uid)
-            await updateDoc(userRef, {
-                trenutniSplit: splitId
-            })
-
-            userPodaci.value.trenutniSplit = splitId
+            await axios.patch(
+                `${ruta}/split/trenutni_split/${splitId}`, 
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
+            
             router.push('/Split')
         } catch (error) {
-            console.error("Greška pri postavljanju trenutnog splita:", error)
+            console.log(error)
+            alert(error.response.data.greska)
         }
     }
 
@@ -68,9 +79,9 @@
         
         <div>
 
-            <div v-for="split in splits" :key="split.id" @click="odaberiSplit(split.id)" class="min-w-100"
+            <div v-for="split in splits" :key="split._id" @click="odaberiSplit(split._id)" class="min-w-100"
                 :class="['p-4 m-2 rounded border', 
-                userPodaci?.trenutniSplit === split.id
+                userPodaci?.trenutniSplit === split._id
                     ? 'border-red-300 bg-red-800 text-white hover:bg-red-400'                                     
                     : 'border-gray-300 bg-gray-300 hover:bg-gray-200']">
                 {{ split.naziv }}

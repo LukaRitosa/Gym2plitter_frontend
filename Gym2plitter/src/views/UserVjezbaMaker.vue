@@ -1,11 +1,8 @@
 <script setup>
     import { ref } from 'vue'
-    import { db } from '@/firebase'
-    import { collection, addDoc } from 'firebase/firestore'
-    import { useUserStore } from '@/stores/userStore'
     import { RouterLink } from 'vue-router'
+    import axios from 'axios'
 
-    const userStore=useUserStore()
 
     const ime=ref('')
     const opis=ref('')
@@ -15,6 +12,10 @@
 
     const loading = ref(false)
     const poruka=ref('')
+
+    
+    const ruta = import.meta.env.VITE_BASE_URL
+    const token = localStorage.getItem("token")
 
     const svi_misici=[
         'Prsa',  'Trapez (gornji dio leđa)', 'Lat (najširi mišić leđa)', 
@@ -29,12 +30,16 @@
             const novaVjezba={
                 naziv:ime.value,
                 glavni_misic:misic.value,
-                Opis: opis.value,
+                opis: opis.value,
                 ostali_misici:ostalimisici.value,
                 slika: slika.value
             }
         
-            await addDoc(collection(db, `users/${userStore.currentUser.uid}/customVjezbe`), novaVjezba)
+            await axios.post( 
+                `${ruta}/vjezbe/custom`, 
+                novaVjezba,
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
 
             poruka.value = 'Vježba uspješno dodana'
 
@@ -44,11 +49,10 @@
             misic.value=''
             ostalimisici.value=[]
         }catch (error) {
-            console.error('Greška kod dodavanja vježbe:', error)
-            poruka.value = 'Došlo je do greške'
-        }
-        finally{
-            loading.value=false
+            console.error(error)
+            alert(error.response.data.greska)
+        } finally {
+            loading.value = false
         }
     }    
     
@@ -76,7 +80,7 @@
                 <div>
                     <label class="block">Glavni mišić:</label>
                     <select v-model="misic" class="border p-1 w-full">
-                        <option v-for="m in svi_misici">
+                        <option v-for="m in svi_misici" :key="m">
                             {{ m }}
                         </option>
 
@@ -85,7 +89,7 @@
                 <div>
                     <label class="block">Ostali mišići:</label>
                     <div class="flex flex-wrap gap-2 mt-1">
-                        <label v-for="m in svi_misici">
+                        <label v-for="m in svi_misici" :key="m">
                             <input type="checkbox" :value="m" v-model="ostalimisici" :disabled="m==misic"/>
                             {{ m }}
                         </label>

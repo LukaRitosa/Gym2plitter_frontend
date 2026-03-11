@@ -1,13 +1,9 @@
 <script setup>
     import { ref, onMounted } from 'vue'
     import { useRouter } from 'vue-router'
-    import { doc, getDoc, updateDoc } from 'firebase/firestore'
-    import { db } from '@/firebase'
-    import { useUserStore } from '@/stores/userStore'
+    import axios from 'axios'
 
     const router = useRouter()
-    const userStore = useUserStore()
-    const kalendar_podaci = ref({})
     const loading = ref(false)
     const edit=ref(false)
 
@@ -17,270 +13,125 @@
 
     const tjedni=ref([])
 
+    const kalendar=ref({})
 
 
-    const generirajKalendar = () => {
-        loading.value = true
-        const danas = new Date()
-        const kalendar = []
-    
+    const ruta = import.meta.env.VITE_BASE_URL
+    const token = localStorage.getItem("token")
 
-        for (let i = 0; i < 14; i++) {
-            const datum = new Date(danas)
-            datum.setDate(danas.getDate() + i)
-
-            kalendar.push({
-                datum: datum,
-                id: formatDateKey(datum),
-                dan_u_tjednu: dani_u_tjednu[datum.getDay()], 
-                dan_u_mjesecu: datum.getDate(),
-                mjesec: datum.getMonth() + 1,
-                godina: datum.getFullYear(),
-                tjedan: Math.floor(i / 7) + 1,
-            })
-        }
-    
-        tjedni.value = kalendar;
-
+    const generiraj_tjedni= ()=>{
+        const datumi= Object.keys(kalendar.value).sort()
+        const tjedniTemp= datumi.map(datum=> {
+            const datumObj= new Date(datum)
+            return {
+                id: datum,
+                dan_u_tjednu: dani_u_tjednu[datumObj.getDay()],
+                dan_u_mjesecu: datumObj.getDate(),
+                mjesec: datumObj.getMonth() + 1,
+                godina: datumObj.getFullYear()
+            }
+        })
+        tjedni.value= tjedniTemp
     }
 
-
-    function formatDateKey(datum) {
-        const year = datum.getFullYear()
-        const month = String(datum.getMonth() + 1).padStart(2, '0')
-        const day = String(datum.getDate()).padStart(2, '0')
-        return `${year}-${month}-${day}`
-    }
 
     const dohvatiKalendar = async () => {
-        try {
+        loading.value=true
+        try{
+            const rez=await axios.get(
+                `${ruta}/kalendar`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
+            kalendar.value= rez.data
+            generiraj_tjedni()
+        }catch (error) {
+            console.error(error)
+            alert(error.response.data.greska)
+        } finally {
+            loading.value = false
+        }
+    }
 
-            const userDocRef = doc(db, `users/${userStore.currentUser.uid}`)
-            const userDocSnap = await getDoc(userDocRef)
-
-            const data = userDocSnap.data()
-                
-            const splitDocRef = doc(db, `users/${userStore.currentUser.uid}/splits/${data.trenutniSplit}`)
-            const splitSnap = await getDoc(splitDocRef)
-            
-            if (splitSnap.exists()) {
-                kalendar_podaci.value = splitSnap.data().kalendar || {}
-            }
-
-        } catch (error) {
-            console.error("Greška pri dohvaćanju kalendara:", error)
+    const updateKalendar= async () => {
+        loading.value= true
+        try{
+            await axios.put(
+                `${ruta}/kalendar/update`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
+        }catch (error) {
+            console.error(error)
+            alert(error.response.data.greska)
         } finally {
             loading.value = false
         }
     }
 
     const getTreningZaDatum = (datum) => {
-        return kalendar_podaci.value[datum] || { naziv: 'Odmor', split_dan_id: null }
+        return kalendar.value[datum] || { naziv: 'Odmor', split_dan_id: null }
     }
 
 
-    const postaviOdmor = async (kliknutiDan) => {
+    const postaviOdmor = async (datum) => {
         loading.value = true
         try {
 
-            const userDocRef = doc(db, `users/${userStore.currentUser.uid}`)
-            const userDocSnap = await getDoc(userDocRef)
-            if (!userDocSnap.exists()) return
-            
-            const data = userDocSnap.data()
+            await axios.put(
+                `${ruta}/kalendar/postavi_odmor/${datum}`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
 
-            const splitDocRef = doc(db, `users/${userStore.currentUser.uid}/splits/${data.trenutniSplit}`)
-            const snap = await getDoc(splitDocRef)
-            if (!snap.exists()) return
+            await dohvatiKalendar()
 
-            const userData = snap.data()
-
-            const original = { ...(userData.kalendar || {}) } 
-            const kalendar = { ...original }
-
-
-            const sviDani = Object.keys(kalendar).sort((a, b) => new Date(a) - new Date(b))
-
-            
-            const idx = sviDani.indexOf(kliknutiDan)
-
-            if(idx===-1) return
-            
-
-            const radniDani = sviDani.slice(idx).filter(d => kalendar[d].split_dan_id !== null || d === kliknutiDan)
-
-            
-
-            if (radniDani.length === 0) return
-
-            let lastValid = {
-                split_dan_id: original[kliknutiDan].split_dan_id,
-                naziv: original[kliknutiDan].naziv
-            }
-
-            for (let i = 1; i < radniDani.length; i++) {
-                const trenutni = radniDani[i]
-
-                kalendar[trenutni] = {
-                    ...kalendar[trenutni],
-                    split_dan_id: lastValid.split_dan_id,
-                    naziv: lastValid.naziv
-                }
-
-                lastValid={
-                    split_dan_id: original[trenutni].split_dan_id,
-                    naziv: original[trenutni].naziv
-                }
-
-            }
-            
-            kalendar[kliknutiDan] = {
-                ...kalendar[kliknutiDan],
-                split_dan_id: null,
-                naziv: "Odmor"
-            }
-
-
-            await updateDoc(splitDocRef, { kalendar })
-            kalendar_podaci.value = kalendar
-
-        } catch (e) {            
-            console.error('Greška:', e)
-
+        } catch (error) {
+            console.error(error)
+            alert(error.response.data.greska)
         } finally {
             loading.value = false
         }
     }
 
 
-    const preskoci= async (kliknutiDan) =>{
+    const preskoci= async (datum) =>{
         loading.value=true
-        try{
+        try {
 
-            const userDocRef = doc(db, `users/${userStore.currentUser.uid}`)
-            const userDocSnap = await getDoc(userDocRef)
-            if (!userDocSnap.exists()) return
-            
-            const data = userDocSnap.data()
+            await axios.put(
+                `${ruta}/kalendar/preskoci/${datum}`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
 
-            const splitDocRef = doc(db, `users/${userStore.currentUser.uid}/splits/${data.trenutniSplit}`)
-            const snap = await getDoc(splitDocRef)
-            if (!snap.exists()) return
+            await dohvatiKalendar()
 
-            const userData = snap.data()
-            const kalendar = { ...(userData.kalendar || {}) }
-
-            const sviDani = Object.keys(kalendar).sort((a, b) => new Date(a) - new Date(b))
-
-            const idx = sviDani.indexOf(kliknutiDan)
-            let sljedeciDan = null
-            for (let i = idx + 1; i < sviDani.length; i++) {
-                if (kalendar[sviDani[i]].split_dan_id !== null) {
-                    sljedeciDan = sviDani[i]
-                    break
-                }
-            }
-
-            if (sljedeciDan === null) {
-                loading.value = false
-                return
-            }
-
-            const temp = { ...kalendar[kliknutiDan] }
-            kalendar[kliknutiDan] = { ...kalendar[sljedeciDan] }
-            kalendar[sljedeciDan] = temp
-
-            await updateDoc(splitDocRef, { kalendar })
-            kalendar_podaci.value = kalendar
-
-        } catch (e) {
-            console.error('Greška preskakanja:', e)
-
+        } catch (error) {
+            console.error(error)
+            alert(error.response.data.greska)
         } finally {
             loading.value = false
         }
     }
 
 
-    const otkaziOdmor= async (kliknutiDan) =>{
+    const otkaziOdmor= async (datum) =>{
         loading.value=true
-        try{
+        try {
 
-            const userDocRef = doc(db, `users/${userStore.currentUser.uid}`)
-            const userDocSnap = await getDoc(userDocRef)
-            if (!userDocSnap.exists()) return
-            
-            const data = userDocSnap.data()
+            await axios.put(
+                `${ruta}/kalendar/otkazi_odmor/${datum}`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
 
-            const splitDocRef = doc(db, `users/${userStore.currentUser.uid}/splits/${data.trenutniSplit}`)
-            const snap = await getDoc(splitDocRef)
-            if (!snap.exists()) return
+            await dohvatiKalendar()
 
-            const userData = snap.data()
-            const original = { ...(userData.kalendar || {}) }
-            const kalendar = { ...(userData.kalendar || {}) }
-
-            if (!kalendar[kliknutiDan]) return
-
-            const sviDani = Object.keys(kalendar).sort((a, b) => new Date(a) - new Date(b))
-
-            const radniDani = sviDani.filter(d => original[d].split_dan_id !== null)
-
-            const prvi_poslje= sviDani.find(d=> d> kliknutiDan && original[d].split_dan_id!==null)
-
-            if (!prvi_poslje) {
-                loading.value = false
-                return
-            }
-
-            const originalniId = radniDani.map(d => original[d].split_dan_id)
-
-            const prvi_id=original[prvi_poslje].split_dan_id
-            const prvi_naziv=original[prvi_poslje].naziv || String(prvi_id)
-
-            kalendar[kliknutiDan] = {
-                ...kalendar[kliknutiDan],
-                split_dan_id: prvi_id,
-                naziv: prvi_naziv,
-            }
-
-            const startPoz=radniDani.indexOf(prvi_poslje)
-
-            for(let i= startPoz; i< radniDani.length; i++){
-                const trenutniDan=radniDani[i]
-                let noviId, noviNaziv
-
-                if(i+1<originalniId.length){
-                    noviId=originalniId[i+1] 
-                    noviNaziv=Object.values(original).find(d=>d.split_dan_id ===noviId)?.naziv || String(noviId)
-                }
-                else {
-                    const zadnjiId = originalniId[i]
-
-                    const zadnjiIndex = userData.dani.findIndex(d => d.dan === zadnjiId)
-
-                    const sljedeciIndex = (zadnjiIndex + 1) % userData.broj_dana
-
-                    noviId = userData.dani[sljedeciIndex].dan
-                    noviNaziv = userData.dani[sljedeciIndex].naziv
-                }
-
-
-                kalendar[trenutniDan]={
-                    ...kalendar[trenutniDan],
-                    split_dan_id: noviId,
-                    naziv: noviNaziv
-                }
-            }
-
-            await updateDoc(splitDocRef, {kalendar})
-            kalendar_podaci.value=kalendar
-
-        } catch(error){
-            console.error("Greška otkazivanja odmora:", error)
-
-        } finally{
-            loading.value=false
+        } catch (error) {
+            console.error(error)
+            alert(error.response.data.greska)
+        } finally {
+            loading.value = false
         }
     }
 
@@ -290,131 +141,10 @@
         }
     }
 
-    const odrzavajKalendar= async () =>{
-        loading.value=true
-        try{
-            const userDocRef = doc(db, `users/${userStore.currentUser.uid}`)
-            const userDocSnap = await getDoc(userDocRef)
-            if (!userDocSnap.exists()) return
-            
-            const data = userDocSnap.data()
-            const slobodni_dani=data.slobodni_dani
-
-
-            const splitDocRef = doc(db, `users/${userStore.currentUser.uid}/splits/${data.trenutniSplit}`)
-            const snap = await getDoc(splitDocRef)
-            if (!snap.exists()) return
-
-            const split = snap.data()
-            const kalendar = { ...(split.kalendar || {}) }
-            const split_dani={...(split.dani || {})}
-            const split_broj_dana=split.broj_dana
-
-
-
-            const danas=formatDateKey(new Date)
-            let brojac=0
-            
-
-            const sviDani = Object.keys(kalendar).sort((a, b) => new Date(a) - new Date(b))
-            if (sviDani.length === 0) return
-
-            const radniDani = sviDani.filter(d => kalendar[d].split_dan_id !== null)
-
-            let zadnji_datum_id=null
-            for (const dan of radniDani) {
-                zadnji_datum_id = dan
-            }
-
-
-            let zadnji_split_dan=kalendar[zadnji_datum_id].split_dan_id
-
-            let zadnji_datum=null
-            for(const dan of sviDani){
-                if(new Date(dan) < new Date(danas)){
-                    brojac++
-
-                    delete kalendar[dan]
-                }
-                zadnji_datum=new Date(dan)
-            }
-
-            if(brojac===0){
-                return
-            }
-
-            if(brojac===14){
-                for(let i=0; i<14; i++){
-                    const datum = new Date(danas)
-                    datum.setDate(danas.getDate() + 1)
-                    const datumISO = datum.toLocaleDateString("sv-SE") 
-                    const danUTjednu = datum.toLocaleDateString("hr-HR", { weekday: "long" })
-
-                    zadnji_split_dan=(zadnji_split_dan + 1)  % split_broj_dana
-                    
-                    
-                    if(slobodni_dani[danUTjednu]){
-                        kalendar[datumISO]={
-                            split_dan_id: split_dani[zadnji_split_dan].dan,
-                            naziv: split_dani[zadnji_split_dan].naziv
-                        }
-                    }
-                    else{
-                        kalendar[datumISO]={
-                            split_dan_id: null,
-                            naziv: "Odmor"
-                        }
-                    }
-                }
-            }
-
-            else{
-                for(let i=1; i<=brojac; i++){
-                    zadnji_datum=new Date(zadnji_datum)
-                    zadnji_datum.setDate(zadnji_datum.getDate()+1)
-                    const datumISO = zadnji_datum.toLocaleDateString("sv-SE") 
-                    const danUTjednu = zadnji_datum.toLocaleDateString("hr-HR", { weekday: "long" })
-                    
-                    
-                    
-                    if(i!==1){
-                        zadnji_split_dan=(zadnji_split_dan + 1) % split_broj_dana
-                    }
-                    if(i===1 && zadnji_split_dan===split_broj_dana){
-                        zadnji_split_dan=0
-                    }
-
-                    if(slobodni_dani.includes(danUTjednu)){
-                        kalendar[datumISO]={
-                            split_dan_id: split_dani[zadnji_split_dan].dan,
-                            naziv: split_dani[zadnji_split_dan].naziv
-                        }
-                    }
-                    else{
-                        kalendar[datumISO]={
-                            split_dan_id: null,
-                            naziv: "Odmor"
-                        }
-                    }
-                }
-            }
-
-
-            await updateDoc(splitDocRef, { kalendar })
-            kalendar_podaci.value = kalendar
-            
-        } catch(error){
-            console.error("Greška pri održavanju datuma", error)
-        } finally{
-            loading.value=false
-        }
-    }
-
 
     onMounted(async () => {
-        generirajKalendar()
+        await updateKalendar()
         await dohvatiKalendar()
-        odrzavajKalendar()
     })
 
 
@@ -438,7 +168,7 @@
             <h3 class="text-3xl font-bold my-4">Kalendar</h3>
 
             <div class="grid grid-cols-7 gap-2 min-w-max grid-red-7 my-4">
-                <div v-for="(datum, index) in tjedni" class="text-center border border-red-700">           
+                <div v-for="datum in tjedni" class="text-center border border-red-700">           
                     <div class="font-bold py-2 border-b sticky top-0 bg-red-800 text-gray-100">
                         {{ datum.dan_u_tjednu }}
                     </div>

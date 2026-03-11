@@ -1,15 +1,11 @@
 <script setup>
     import { ref, onMounted, computed } from 'vue'
-    import { doc, getDoc, updateDoc, getDocs, collection } from 'firebase/firestore'
-    import { db } from '@/firebase'
-    import { useUserStore } from '@/stores/userStore'
-    import { useRoute } from 'vue-router'
-    import { RouterLink } from 'vue-router'
+    import { useRoute, RouterLink } from 'vue-router'
+    import axios from 'axios'
 
     
 
     const route = useRoute()
-    const userStore = useUserStore()
 
     const props = defineProps({
         danId: {
@@ -21,120 +17,108 @@
     const danId = Number(props.danId ?? route.params.danId)
 
 
-    const trenutniSplitId = ref(null)
     const danPodaci = ref({})
     const vjezbe = ref([])
-    const sveVježbe=ref([])
+    const sveVjezbe=ref([])
 
     const loading = ref(false)
     const detalji=ref(false)
     const promjena=ref(false)
     const izbornik=ref(false)
 
-    const dohvatiSplit = async () => {
-        try {
-            loading.value = true
-
-            const userDocRef = doc(db, `users/${userStore.currentUser.uid}`)
-            const userSnap = await getDoc(userDocRef)
-            if (userSnap.exists()) {
-                trenutniSplitId.value = userSnap.data().trenutniSplit
-            }
-        } catch (error) {
-            console.error("Greška pri dohvaćanju:", error)
-        }
-    }
     
-    const dohvatiVjezbe = async (vjezbeIds) => {
-        try {
-            const rez = []
-            for (const id of vjezbeIds) {
-                let vjezbaRef = doc(db, 'vjezbe', id)
-                let vjezbaSnap = await getDoc(vjezbaRef)
-                
-                if (!vjezbaSnap.exists()) {
-                    vjezbaRef = doc(db, `users/${userStore.currentUser.uid}/customVjezbe`, id)
-                    vjezbaSnap = await getDoc(vjezbaRef)
-                }
+    const ruta = import.meta.env.VITE_BASE_URL
+    const token = localStorage.getItem("token")
 
-                if (vjezbaSnap.exists()) {
-                    rez.push({
-                        id,
-                        naziv: vjezbaSnap.data().naziv,
-                        opis: vjezbaSnap.data().Opis,
-                        slika: vjezbaSnap.data().slika,
-                        glavni_misic: vjezbaSnap.data().glavni_misic,
-                        ostali_misici: vjezbaSnap.data().ostali_misici || [],
-                        brojSetova: danPodaci.value.setovi?.[id] || 1
-                    })
-                }
-            }
-            vjezbe.value = rez
+    // const dohvatiSplit = async () => {
+    //     try {
+    //         loading.value = true
+
+    //         const userDocRef = doc(db, `users/${userStore.currentUser.uid}`)
+    //         const userSnap = await getDoc(userDocRef)
+    //         if (userSnap.exists()) {
+    //             trenutniSplitId.value = userSnap.data().trenutniSplit
+    //         }
+    //     } catch (error) {
+    //         console.error("Greška pri dohvaćanju:", error)
+    //     }
+    // }
+    
+    // const dohvatiVjezbe = async (vjezbeIds) => {
+    //     try {
+    //         const rez = []
+    //         for (const id of vjezbeIds) {
+    //             let vjezbaRef = doc(db, 'vjezbe', id)
+    //             let vjezbaSnap = await getDoc(vjezbaRef)
+                
+    //             if (!vjezbaSnap.exists()) {
+    //                 vjezbaRef = doc(db, `users/${userStore.currentUser.uid}/customVjezbe`, id)
+    //                 vjezbaSnap = await getDoc(vjezbaRef)
+    //             }
+
+    //             if (vjezbaSnap.exists()) {
+    //                 rez.push({
+    //                     id,
+    //                     naziv: vjezbaSnap.data().naziv,
+    //                     opis: vjezbaSnap.data().Opis,
+    //                     slika: vjezbaSnap.data().slika,
+    //                     glavni_misic: vjezbaSnap.data().glavni_misic,
+    //                     ostali_misici: vjezbaSnap.data().ostali_misici || [],
+    //                     brojSetova: danPodaci.value.setovi?.[id] || 1
+    //                 })
+    //             }
+    //         }
+    //         vjezbe.value = rez
+    //     } catch (error) {
+    //         console.error("Greška pri dohvaćanju vježbi:", error)
+    //     } finally {
+    //         loading.value = false
+    //     }
+    // }
+
+    const dohvatiDan = async () => {
+        loading.value=true
+        try {
+
+            const rez= await axios.get(
+                `${ruta}/split_dan/${danId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
+            danPodaci.value= rez.data
+            vjezbe.value= rez.data.vjezbe
         } catch (error) {
-            console.error("Greška pri dohvaćanju vježbi:", error)
+            console.error(error)
+            alert(error.response.data.greska)
         } finally {
             loading.value = false
         }
     }
 
-    const dohvatiDan = async () => {
-        try {
-
-            const splitRef = doc(db, `users/${userStore.currentUser.uid}/splits/${trenutniSplitId.value}`)
-            const splitSnap = await getDoc(splitRef)
-            if (splitSnap.exists()) {
-                const splitData = splitSnap.data()
-                
-                const odabraniDan = splitData.dani?.find(d => Number(d.dan) === Number(danId))
-                if (odabraniDan) {
-                    danPodaci.value = odabraniDan
-                    await dohvatiVjezbe(odabraniDan.vjezbe || [])
-                }
-            }
-        } catch (error) {
-            console.error("Greška pri dohvaćanju:", error)
-        }
-    }
-
     
     const dohvatiSveVjezbe= async () => {
-        try{
-            const sve=[]
-
-            const globalSnap= await getDocs(collection(db, 'vjezbe'))
-            
-            globalSnap.forEach(docSnap => {
-                sve.push({
-                    id: docSnap.id,
-                    ...docSnap.data()
-                })
-            })
-            
-            const customSnap= await getDocs(collection(db, `users/${userStore.currentUser.uid}/customVjezbe`))
-                
-            customSnap.forEach(docSnap => {
-                sve.push({
-                    id: docSnap.id,
-                    ...docSnap.data(),
-                    custom: true
-                })
-            })
-            
-            sveVježbe.value=sve
-        }
-        catch (error){
-            console.error("Greška pri dohvaćanju vježbi:", error)
+        loading.value=true
+        try {
+            const rez= await axios.get(
+                `${ruta}/vjezbe/biranje`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
+            sveVjezbe.value= rez.data.vjezbe
+        } catch (error) {
+            console.error(error)
+            alert(error.response.data.greska)
+        } finally {
+            loading.value = false
         }
     }
 
     const grupiraneVjezbe= computed (() =>{
         const grupe={}
-        sveVježbe.value.forEach(vjezba=>{
-            if(!vjezbe.value.some(v => v.id===vjezba.id)) {
+        sveVjezbe.value.forEach(vjezba=>{
+            if(!vjezbe.value.some(v => v.id===vjezba._id)) {
                 if(!grupe[vjezba.glavni_misic]){
                     grupe[vjezba.glavni_misic]=[]
                 }
-                grupe[vjezba.glavni_misic].push(vjezba)
+                grupe[vjezba.glavni_misic].push({...vjezba, id: vjezba._id})
             }
         })
         return grupe
@@ -166,128 +150,62 @@
     const spremiPromjene= async () =>{
         loading.value=true
         try{
-            const splitRef = doc(db, `users/${userStore.currentUser.uid}/splits/${trenutniSplitId.value}`)
-            const splitSnap = await getDoc(splitRef)
-
-            if(splitSnap.exists()){
-                const splitData=splitSnap.data()
-
-                const promjenjenDan=splitData.dani.map(dan=>{
-                    if(dan.dan===danId){
-                        const promjenjeniSetovi={}
-                        vjezbe.value.forEach(v=>{
-                            promjenjeniSetovi[v.id]=v.brojSetova
-                        })
-
-                        return{
-                            ...dan,
-                            setovi: promjenjeniSetovi
-                        }    
-                    }
-
-                    return dan
-                })
-
-                await updateDoc(splitRef, {
-                    dani: promjenjenDan
-                })
-            }
-        promjena.value=false
-        }
-        catch (error){
-            console.error("Greška pri spremanju:", error)
+            await axios.put(
+                `${ruta}/split_dan/${danId}/novi_setovi`,
+                { 
+                    vjezbe: vjezbe.value.map(v=>
+                        ({ id: v.id, broj_setova: v.brojSetova })
+                    ) 
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
+            promjena.value=false
+        }catch (error) {
+            console.error(error)
+            alert(error.response.data.greska)
         } finally {
             loading.value = false
         }
     }
 
     const dodajVjezbu= async (novaVjezba) =>{
+        loading.value=true
         try{
-            loading.value=true
+            await axios.patch(
+                `${ruta}/split_dan/${danId}/vjezba/${novaVjezba._id}`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
 
-            vjezbe.value.push({
-                id: novaVjezba.id,
-                naziv: novaVjezba.naziv,
-                opis: novaVjezba.Opis,
-                slika: novaVjezba.slika,
-                glavni_misic: novaVjezba.glavni_misic,
-                ostali_misici: novaVjezba.ostali_misici || [],
-                brojSetova: 1
-            })
-
-            const splitRef= doc(db, `users/${userStore.currentUser.uid}/splits/${trenutniSplitId.value}`)
-            const splitSnap = await getDoc(splitRef)
-
-            const splitData=splitSnap.data()
-
-            const promjeniDan=splitData.dani.map(dan =>{
-                if(Number(dan.dan) === Number(danId)){
-                    return{
-                        ...dan,
-                        vjezbe: [...(dan.vjezbe || []), novaVjezba.id],
-                        setovi: {...(dan.setovi || {}), [novaVjezba.id]: 1}
-                    }
-                }
-                return dan
-            })
-
-            await updateDoc(splitRef, {
-                dani: promjeniDan
-            })
-                
+            await dohvatiDan()
+            izbornik.value=false
         } catch (error) {
-            console.error("Greška pri dodavanju:", error)
+            console.error(error)
+            alert(error.response.data.greska)
         } finally {
             loading.value = false
-            izbornik.value=false
         }
     }
 
-    const ukloniVjezbu= async (vjezba) =>{
+    const ukloniVjezbu= async (vjezba_id) =>{
+        loading.value= true
         try{
-            loading.value= true
+            await axios.patch(
+                `${ruta}/split_dan/${danId}/ukloni_vjezbu/${vjezba_id}`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
 
-            vjezbe.value= vjezbe.value.filter(v => v.id!==vjezba)
-
-            const splitRef= doc(db, `users/${userStore.currentUser.uid}/splits/${trenutniSplitId.value}`)
-            const splitSnap= await getDoc(splitRef)
-
-            if (!splitSnap.exists()) {
-                console.error("Split ne postoji")
-                return
-            }
-
-            const splitData= splitSnap.data()
-
-            const promjeniDan= splitData.dani.map(dan => {
-                if (Number(dan.dan) === Number(danId)){
-                    const noveVjezbe = { 
-                        ...(dan.setovi || {}) 
-                    }
-                    delete noveVjezbe[vjezba]
-
-                    return {
-                        ...dan,
-                        vjezbe: (dan.vjezbe || []).filter(id => id !== vjezba),
-                        setovi: noveVjezbe
-                    }
-
-                }
-                return dan
-            })
-
-            await updateDoc(splitRef, {
-                dani: promjeniDan
-            })
+            await dohvatiDan()
         } catch (error) {
-            console.error("Greška pri uklanjanju:", error)
+            console.error(error)
+            alert(error.response.data.greska)
         } finally {
             loading.value = false
         }
     }
 
     onMounted(async () => {
-        await dohvatiSplit()
         await dohvatiDan()
         await dohvatiSveVjezbe()
     })
