@@ -4,6 +4,7 @@
     import { collection, doc, getDoc, getDocs, updateDoc } from 'firebase/firestore'
     import { db } from '@/firebase'
     import { useUserStore } from '@/stores/userStore'
+    import axios from 'axios'
 
     const router = useRouter()
     const userStore = useUserStore()
@@ -16,6 +17,9 @@
 
     const izbornikHrane = ref(false)
     const aktivniObrok = ref(null) 
+    
+    const ruta = import.meta.env.VITE_BASE_URL
+    const token = localStorage.getItem("token")
 
 
     function formatirajDatumISO(datum) {
@@ -27,25 +31,18 @@
 
     async function dohvatiUserPodatke(){
         loading.value = true
-        try {
-            const user = userStore.currentUser
-            if (!user) return
-
-            const docRef = doc(db, 'users', user.uid)
-            const docSnap = await getDoc(docRef)
-
-            if (docSnap.exists()) {
-                userPodaci.value = docSnap.data()
-
-                const prehranaArray = userPodaci.value.prehrana || []
-                const danasISO = formatirajDatumISO(odabraniDatum.value)
-
-                danasnjaPrehrana.value = prehranaArray.find(d => d.datum === danasISO) || null
-            }
-        } catch(error) {
-            console.error('Greška', error)
-        } finally {
-            loading.value = false
+        try{
+            
+            const rez= await axios.get(
+                `${ruta}/user/profil`, 
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
+            userPodaci.value= rez.data
+        }catch(error){
+            localStorage.removeItem("token")
+            router.push("/")
+        }finally{
+            loading.value= false
         }
     }
 

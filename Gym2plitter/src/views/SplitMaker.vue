@@ -22,14 +22,8 @@
 
             console.log(vjezbe)
         } catch (error) {
-            if (error.response) {
-                console.error('Backend greška:', error.response.data)
-                console.error('Status:', error.response.status)
-            } else if (error.request) {
-                console.error('Nema odgovora od servera:', error.request)
-            } else {
-                console.error('Greška:', error.message)
-            }
+            console.error(error)
+            alert(error.response.data.greska)
         } finally {
             loading.value = false
         }
@@ -83,16 +77,8 @@
             broj_dana.value = 0
             updateDani()
         } catch (error) {
-            if (error.response) {
-                console.error('Backend greška:', error.response.data)
-                poruka.value = error.response.data.greska || error.response.data.error || 'Greška pri spremanju.'
-            } else if (error.request) {
-                console.error('Nema odgovora od servera:', error.request)
-                poruka.value = 'Nema odgovora od servera'
-            } else {
-                console.error('Greška:', error.message)
-                poruka.value = 'Greška pri spremanju.'
-            }
+            console.error(error)
+            alert(error.response.data.greska)
         }
         finally{
             loading.value = false

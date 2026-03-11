@@ -30,52 +30,6 @@
     const ruta = import.meta.env.VITE_BASE_URL
     const token = localStorage.getItem("token")
 
-    // const dohvatiSplit = async () => {
-    //     try {
-    //         loading.value = true
-
-    //         const userDocRef = doc(db, `users/${userStore.currentUser.uid}`)
-    //         const userSnap = await getDoc(userDocRef)
-    //         if (userSnap.exists()) {
-    //             trenutniSplitId.value = userSnap.data().trenutniSplit
-    //         }
-    //     } catch (error) {
-    //         console.error("Greška pri dohvaćanju:", error)
-    //     }
-    // }
-    
-    // const dohvatiVjezbe = async (vjezbeIds) => {
-    //     try {
-    //         const rez = []
-    //         for (const id of vjezbeIds) {
-    //             let vjezbaRef = doc(db, 'vjezbe', id)
-    //             let vjezbaSnap = await getDoc(vjezbaRef)
-                
-    //             if (!vjezbaSnap.exists()) {
-    //                 vjezbaRef = doc(db, `users/${userStore.currentUser.uid}/customVjezbe`, id)
-    //                 vjezbaSnap = await getDoc(vjezbaRef)
-    //             }
-
-    //             if (vjezbaSnap.exists()) {
-    //                 rez.push({
-    //                     id,
-    //                     naziv: vjezbaSnap.data().naziv,
-    //                     opis: vjezbaSnap.data().Opis,
-    //                     slika: vjezbaSnap.data().slika,
-    //                     glavni_misic: vjezbaSnap.data().glavni_misic,
-    //                     ostali_misici: vjezbaSnap.data().ostali_misici || [],
-    //                     brojSetova: danPodaci.value.setovi?.[id] || 1
-    //                 })
-    //             }
-    //         }
-    //         vjezbe.value = rez
-    //     } catch (error) {
-    //         console.error("Greška pri dohvaćanju vježbi:", error)
-    //     } finally {
-    //         loading.value = false
-    //     }
-    // }
-
     const dohvatiDan = async () => {
         loading.value=true
         try {
@@ -102,7 +56,8 @@
                 `${ruta}/vjezbe/biranje`,
                 { headers: { Authorization: `Bearer ${token}` } }
             )
-            sveVjezbe.value= rez.data.vjezbe
+
+            sveVjezbe.value= rez.data
         } catch (error) {
             console.error(error)
             alert(error.response.data.greska)
@@ -168,11 +123,11 @@
         }
     }
 
-    const dodajVjezbu= async (novaVjezba) =>{
+    const dodajVjezbu= async (id_vjeza) =>{
         loading.value=true
         try{
             await axios.patch(
-                `${ruta}/split_dan/${danId}/vjezba/${novaVjezba._id}`,
+                `${ruta}/split_dan/${danId}/vjezba/${id_vjeza}`,
                 {},
                 { headers: { Authorization: `Bearer ${token}` } }
             )
@@ -310,7 +265,7 @@
             <h4 class="text-xl font-bold mb-2">{{ misic }}</h4>
 
             <div class="flex gap-4 justify-center p-2">
-                <div v-for="v in grupa" :key="v.id" @click="dodajVjezbu(v)"
+                <div v-for="v in grupa" :key="v._id" @click="dodajVjezbu(v._id)"
                     class="w-60 text-center flex flex-col items-center border rounded p-4 hover:bg-red-200">
                     
                     <h5 class="font-semibold">

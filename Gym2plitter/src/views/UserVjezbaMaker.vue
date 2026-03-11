@@ -86,7 +86,7 @@
 
                     </select>
                 </div>
-                <div>
+                <div v-if="misic">
                     <label class="block">Ostali mišići:</label>
                     <div class="flex flex-wrap gap-2 mt-1">
                         <label v-for="m in svi_misici" :key="m">

@@ -1,10 +1,8 @@
 <script setup>
     import { ref, watch, computed } from 'vue'
-    import { db } from '@/firebase'
-    import { collection, getDocs, addDoc } from 'firebase/firestore'
-    import { useUserStore } from '@/stores/userStore'
+    import axios from 'axios'
+    import { onMounted } from 'vue'
 
-    const userStore= useUserStore()
 
     const naziv=ref('')
     const broj_dana=ref(0)
@@ -15,33 +13,24 @@
     const poruka = ref('')
     const loading = ref(false)
 
+    const ruta = import.meta.env.VITE_BASE_URL
+    const token = localStorage.getItem("token")
+
     const dohvatiVjezbe = async () => {
-        const globalSnap= await getDocs(collection(db, 'vjezbe'))
-        const global=globalSnap.docs.map(doc => ({
-            id: doc.id,
-            naziv: doc.data().naziv,
-            glavni_misic: doc.data().glavni_misic
-        }))
+        loading.value=true
+        try {
+            const rez= await axios.get(
+                `${ruta}/vjezbe/biranje`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
 
-        let custom= []
-
-        const user= userStore.currentUser
-
-        if(!user){
-            poruka.value = 'Nisi prijavljen'
-            return
+            vjezbe.value= rez.data
+        } catch (error) {
+            console.error(error)
+            alert(error.response.data.greska)
+        } finally {
+            loading.value = false
         }
-
-        const customSnap= await getDocs(collection(db, `users/${user.uid}/customVjezbe`))
-
-
-        custom= customSnap.docs.map(doc=>({
-            id: doc.id,
-            naziv: doc.data().naziv,
-            glavni_misic: doc.data().glavni_misic
-        }))
-
-        vjezbe.value= [...global, ...custom]
     }
 
     const grupiraneVjezbe = computed(() => {
@@ -55,7 +44,6 @@
         return grupe
     })
 
-    dohvatiVjezbe()
 
 
     const updateDani = () => {
@@ -73,49 +61,36 @@
     const stvoriSplit = async () => {
         loading.value = true
         try {
-            const kalendar = {}
-
-            const user = userStore.currentUser
-            if (!user) {
-                poruka.value = 'Nisi prijavljen'
-                return
-            }
-
-            for (let i = 0; i < 14; i++) {
-                const dummyDate = new Date(2004, 7, 6 + i) 
-                    .toISOString()
-                    .split('T')[0]
-
-                kalendar[dummyDate] = {
-                    split_dan_id: null,
-                    naziv: "Odmor"
-                }
-            }
-
             const noviSplit = {
                 naziv: naziv.value,
                 broj_dana: broj_dana.value,
                 opis: opis.value,
                 dani: dani.value.map(dan => ({
-                    ...dan,
-                    setovi: dan.vjezbe.reduce((acc, vjezbaId) => {
-                        acc[vjezbaId] = 1
-                        return acc
-                    }, {})
-                })),
-                kalendar: kalendar
+                    dan: dan.dan,
+                    naziv: dan.naziv,
+                    vjezbe: dan.vjezbe
+                }))
             }
 
-            await addDoc(collection(db, `users/${user.uid}/customSplits`), noviSplit)
+            console.log(noviSplit)
+
+            await axios.post(
+                `${ruta}/custom`, 
+                noviSplit,
+                { headers: { Authorization: `Bearer ${token}` } }
+            ) 
+
+            
 
             poruka.value = 'Split uspješno dodan'
+
             naziv.value = ''
             opis.value=''
             broj_dana.value = 0
             updateDani()
         } catch (error) {
-            console.error('Greška:', error)
-            poruka.value = 'Greška pri spremanju.'
+            console.error(error)
+            alert(error.response.data.greska)
         }
         finally{
             loading.value = false
@@ -123,7 +98,9 @@
     
     }
  
-
+    onMounted(() =>{
+        dohvatiVjezbe()
+    })
 
 </script>
 
@@ -153,7 +130,7 @@
                 <input v-model.number="broj_dana" class="border p-1 w-full" type="number" min="1" max="7" />
             </div>
 
-            <div v-for="(dan, index) in dani" >
+            <div v-for="dan in dani" :key="dan.dan">
                 <h3 class="font-bold mb-2">Dan {{ dan.dan }}</h3>
 
                 <label class="block">Naziv dana:</label>
@@ -163,8 +140,8 @@
                 <div v-for="(grupa, misic) in grupiraneVjezbe" :key="misic">
                     <div class="flex flex-wrap gap-2">
                         <h4 class="font-semibold mb-1">{{ misic }}</h4>
-                        <label v-for="v in grupa" :key="v.id" class="inline-flex items-center gap-1">
-                            <input type="checkbox" :value="v.id" v-model="dan.vjezbe"/>
+                        <label v-for="v in grupa" :key="v._id" class="inline-flex items-center gap-1">
+                            <input type="checkbox" :value="v._id" v-model="dan.vjezbe"/>
                             {{ v.naziv }}
                         </label>
                     </div>
