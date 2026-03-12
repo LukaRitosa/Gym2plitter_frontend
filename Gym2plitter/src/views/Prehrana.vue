@@ -1,25 +1,38 @@
 <script setup>
     import { ref, onMounted, watch, computed } from 'vue'
     import { useRouter } from 'vue-router'
-    import { collection, doc, getDoc, getDocs, updateDoc } from 'firebase/firestore'
-    import { db } from '@/firebase'
-    import { useUserStore } from '@/stores/userStore'
     import axios from 'axios'
 
     const router = useRouter()
-    const userStore = useUserStore()
 
     const userPodaci = ref(null)
     const danasnjaPrehrana = ref(null)
-    const loading = ref(true)
 
-    const odabraniDatum = ref(new Date())
+    const sviObroci=ref([])
+    const svaHrana=ref([])
+    
+    const loading = ref(true)
 
     const izbornikHrane = ref(false)
     const aktivniObrok = ref(null) 
+
+    const detaljiStavke=ref(null)
+    const detalji=ref(false)
+    
+    const editMode=ref(false)
+    const editObrok=ref(null)
+    const editIndex=ref(null)
     
     const ruta = import.meta.env.VITE_BASE_URL
     const token = localStorage.getItem("token")
+
+    const props= defineProps({
+        datum: String
+    })
+
+    const odabraniDatum = ref(
+        props.datum ? new Date(props.datum) : new Date()
+    )
 
 
     function formatirajDatumISO(datum) {
@@ -39,32 +52,56 @@
             )
             userPodaci.value= rez.data
         }catch(error){
-            localStorage.removeItem("token")
-            router.push("/")
+            console.error(error)
+            alert(error.response.data.greska)
         }finally{
             loading.value= false
         }
     }
 
+
+
     function nazad() {
         const d = new Date(odabraniDatum.value)
         d.setDate(d.getDate() - 1)
-        odabraniDatum.value = d
+
+        const iso= formatirajDatumISO(d)
+        if(userPodaci.value.prehrana.some(d => d.datum=== iso)){
+            router.push(`/prehrana/${iso}`)
+        }
     }
 
-        function naprijed() {
+    function naprijed() {
         const d = new Date(odabraniDatum.value)
         d.setDate(d.getDate() + 1)
-        odabraniDatum.value = d
+
+        const iso= formatirajDatumISO(d)
+        if(userPodaci.value.prehrana.some(d => d.datum=== iso)){
+            router.push(`/prehrana/${iso}`)
+        }
     }
 
-    function postaviPrehranuZaDatum(datum){
-        if(!userPodaci.value) return
 
-        const iso= formatirajDatumISO(datum)
 
-        danasnjaPrehrana.value=userPodaci.value.prehrana.find(p=> p.datum===iso)|| null
+    async function postaviPrehranuZaDatum(datum){ 
+        loading.value= true
+        try{
+            const rez= await axios.get(
+                `${ruta}/prehrana/${formatirajDatumISO(datum)}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
+
+            danasnjaPrehrana.value= rez.data
+        }catch(error){
+            console.error(error)
+            alert(error.response.data.greska)
+        }finally{
+            loading.value= false
+        }
     }
+
+
+
 
     function otvoriIzbornik(obrok) {
         aktivniObrok.value = obrok
@@ -76,87 +113,45 @@
         izbornikHrane.value = false
     }
 
-    async function dohvatiCustomHranu(){
-        try{
-            const user= userStore.currentUser
-            if(!user) return 
 
-            const snap= await getDocs(collection(db, `users/${user.uid}/customHrana`))
 
-            return snap.docs.map(doc=>({
-                id: doc.id,
-                grami: 100,
-                ...doc.data()
-            }))
-        } catch(error){
-            console.error('Greška dohvaćanju custom hrane', e)
-            return []
-        }
-    }
-
-    const svaHrana=ref([])
 
     async function dohvatiHranu(){
         loading.value=true
         try{
-            const globalSnap= await getDocs(collection(db, 'hrana'))
+            const rez= await axios.get(
+                `${ruta}/hrana/biranje`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
 
-            const globalna= globalSnap.docs.map(doc=>({
-                id: doc.id,
-                grami: 100,
-                ...doc.data()
-            }))
-
-            const custom= await dohvatiCustomHranu()
-
-            svaHrana.value= [...globalna, ...custom]
+            svaHrana.value= rez.data
         } catch(error){
-            console.error('Greška kod hrane', error)
-        } finally{
-            loading.value=false
+            console.error(error)
+            alert(error.response.data.greska)
+        }finally{
+            loading.value= false
         }
     }
-
-    async function dohvatiCustomObroke(){
-        try{
-            const user= userStore.currentUser
-            if(!user) return 
-
-            const snap= await getDocs(collection(db, `users/${user.uid}/customObroci`))
-
-            return snap.docs.map(doc=>({
-                id: doc.id,
-                ...doc.data()
-            }))
-        } catch(error){
-            console.error('Greška dohvaćanju custom hrane', e)
-            return []
-        }
-    }
-
-    const sviObroci=ref([])
 
     async function dohvatiObroke(){
         loading.value=true
         try{
-            const globalSnap= await getDocs(collection(db, 'obroci'))
+            const rez= await axios.get(
+                `${ruta}/obrok/biranje`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
 
-            const globalni= globalSnap.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }))
-
-            const custom= await dohvatiCustomObroke()
-
-            sviObroci.value= [...globalni, ...custom]
+            sviObroci.value= rez.data
         } catch(error){
-            console.error('Greška kod obroka', error)
-        } finally{
-            loading.value=false
+            console.error(error)
+            alert(error.response.data.greska)
+        }finally{
+            loading.value= false
         }
     }
 
-    const detaljiStavke=ref(null)
+
+
 
     function detaljiHrane(hrana){
         detaljiStavke.value={
@@ -176,88 +171,86 @@
         detalji.value=true
     }
 
-    const detalji=ref(false)
-
     function zatvoriDetalji(){
         detalji.value=false
         detaljiStavke.value=null
     }
 
-    const izracunateKalorije=computed(()=>{
+
+
+
+    const izracunateKalorije=computed(()=>{ 
         if(!detaljiStavke.value) return 0
 
         const g= detaljiStavke.value.novi_grami
         const p= detaljiStavke.value.podatak
 
-        return Number(((g/100) * p.kalorije).toFixed(2))
+        return p.grami ? Number(((g/p.grami) * p.kalorije).toFixed(2)) : 0
     })
 
-    const izracunatiProteini=computed(()=>{
+    const izracunatiProteini=computed(()=>{ 
         if(!detaljiStavke.value) return 0
 
         const g= detaljiStavke.value.novi_grami
         const p= detaljiStavke.value.podatak
 
-        return Number(((g/100) * p.proteini).toFixed(2))
+        return p.grami ? Number(((g/p.grami) * p.proteini).toFixed(2)) : 0
     })
 
-    async function spremiPrehranu() {
-        try {
-            const user = userStore.currentUser
-            if (!user) return
 
-            const docRef = doc(db, 'users', user.uid)
 
-            await updateDoc(docRef, {
-                prehrana: userPodaci.value.prehrana
-            })
-
-        } catch (err) {
-            console.error('Greška pri spremanju prehrane:', err)
-        }
-    }
 
     async function dodajStavku() {
         if (!danasnjaPrehrana.value || !aktivniObrok.value) return
+        loading.value= true
 
-        const g = detaljiStavke.value.novi_grami
-        const p = detaljiStavke.value.podatak
+        const g= detaljiStavke.value.novi_grami
+        const p= detaljiStavke.value.podatak
 
-        const stavka = {
-            naziv: p.naziv,
-            grami: g,
-            kalorije: izracunateKalorije.value,
-            proteini: izracunatiProteini.value
+        try{
+            await axios.patch(
+                `${ruta}/prehrana/${formatirajDatumISO(odabraniDatum.value)}/${aktivniObrok.value}/dodaj`,
+                { id: p._id, grami: g },
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
+
+            await dohvatiUserPodatke()
+            postaviPrehranuZaDatum(odabraniDatum.value)
+        }catch(error){
+            console.error(error)
+            alert(error.response.data.greska)
+        }finally{
+            loading.value= false
+
+            detalji.value = false
+            izbornikHrane.value = false
+            detaljiStavke.value = null
         }
-
-        danasnjaPrehrana.value.pojedeno[aktivniObrok.value].push(stavka)
-
-        danasnjaPrehrana.value.ostvareneKalorije += stavka.kalorije
-        danasnjaPrehrana.value.ostvareniProteini += stavka.proteini
-
-        await spremiPrehranu()
-
-        detalji.value = false
-        izbornikHrane.value = false
-        detaljiStavke.value = null
     }
 
     async function obrisiStavku(ime_obroka, index){
         if(!danasnjaPrehrana.value) return 
+        loading.value=true
 
         const stavka= danasnjaPrehrana.value.pojedeno[ime_obroka][index]
 
-        danasnjaPrehrana.value.ostvareneKalorije-=stavka.kalorije
-        danasnjaPrehrana.value.ostvareniProteini-=stavka.proteini
+        try{
+            await axios.patch(
+                `${ruta}/prehrana/${formatirajDatumISO(odabraniDatum.value)}/${ime_obroka}/ukloni/${stavka._id}`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
 
-        danasnjaPrehrana.value.pojedeno[ime_obroka].splice(index, 1) 
-
-        await spremiPrehranu()
+            await dohvatiUserPodatke()
+            postaviPrehranuZaDatum(odabraniDatum.value)
+        }catch(error){
+            console.error(error)
+            alert(error.response.data.greska)
+        }finally{
+            loading.value= false
+        }
     }
 
-    const editMode=ref(false)
-    const editObrok=ref(null)
-    const editIndex=ref(null)
 
     function urediStavku(imeObroka, index) {
         const stavka = danasnjaPrehrana.value.pojedeno[imeObroka][index]
@@ -268,8 +261,9 @@
         detaljiStavke.value = {
             podatak: {
                 naziv: stavka.naziv,
-                kalorije: (stavka.kalorije / stavka.grami) * 100,
-                proteini: (stavka.proteini / stavka.grami) * 100
+                kalorije: stavka.kalorije,
+                proteini: stavka.proteini,
+                grami: stavka.grami
             },
             novi_grami: stavka.grami
         }
@@ -279,112 +273,69 @@
     }
 
     async function urediUredenuStavku(){
+        if(!editObrok.value || editIndex.value === null || !detaljiStavke.value) return
+        loading.value = true
+        
         const obrok= editObrok.value
         const index= editIndex.value
 
-        const stara=danasnjaPrehrana.value.pojedeno[obrok][index]
+        const stavka= danasnjaPrehrana.value.pojedeno[obrok][index]
+        const noviGrami= detaljiStavke.value.novi_grami
 
-        danasnjaPrehrana.value.ostvareneKalorije-= stara.kalorije
-        danasnjaPrehrana.value.ostvareniProteini-= stara.proteini
+        try{
+            await axios.patch(
+                `${ruta}/prehrana/${formatirajDatumISO(odabraniDatum.value)}/${obrok}/uredi/${stavka._id}`,
+                { grami: noviGrami },
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
 
-        const nova={
-            naziv: stara.naziv,
-            grami: detaljiStavke.value.novi_grami,
-            kalorije: izracunateKalorije.value,
-            proteini: izracunatiProteini.value
+            await dohvatiUserPodatke()
+            postaviPrehranuZaDatum(odabraniDatum.value)
+        }catch(error){
+            console.error(error)
+            alert(error.response.data.greska)
+        }finally{
+            loading.value= false
+
+            editMode.value=false
+            detalji.value = false
+            detaljiStavke.value = null
+            editIndex.value = null
+            editObrok.value = null
         }
-
-        danasnjaPrehrana.value.pojedeno[obrok][index]= nova
-
-        danasnjaPrehrana.value.ostvareneKalorije+= nova.kalorije
-        danasnjaPrehrana.value.ostvareniProteini+= nova.proteini
-
-        await spremiPrehranu()
-
-        editMode.value=false
-        detalji.value = false
-        detaljiStavke.value = null
-        editIndex.value = null
-        editObrok.value = null
     }
 
     async function preracunajan(){
         loading.value=true
 
         try{
-            const user = userStore.currentUser
-            if (!user) return
-
-            const userRef = doc(db, 'users', user.uid)
-
-            const snap= await getDoc(userRef)
-            if(!snap.exists()) return
-
-            let prehrana= [...(snap.data().prehrana || [])]
-
-            if (prehrana.length===0) return
-
-            const zadnji_datum= prehrana[prehrana.length - 1].datum
-
-            const danas= new Date().toLocaleDateString("sv-SE")
-
-            const danasDate = new Date(danas)
-            const zadnjiDate = new Date(zadnji_datum)
-
-            let razlika= Math.floor((danasDate - zadnjiDate) / (1000 * 60 * 60 * 24))
-
-            if (razlika<= 0) return
-
-            else if(razlika>7){
-                razlika=7
-            }
-
-            if(prehrana.length===7){
-                prehrana.splice(0, razlika)
-            }
-
-            let datum= new Date(zadnji_datum)
-
-            for(let i=0; i<razlika; i++){
-                datum.setDate(datum.getDate() + 1)
-                const iso= datum.toLocaleDateString("sv-SE")
-                let dan={
-                    datum: iso,
-                    ostvareneKalorije: 0,
-                    ostvareniProteini: 0,
-                    pojedeno: {
-                        rucak: [],
-                        vecera: [],
-                        snack: [],
-                        marenda: [],
-                        nekarakterizirano: []
-                    }
-                }
-                prehrana.push(dan)
-            }
-
-            await updateDoc(userRef, { prehrana })
-
-            userPodaci.value.prehrana = prehrana
-            postaviPrehranuZaDatum(odabraniDatum.value)
+            await axios.put(
+                `${ruta}/prehrana/update`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
         } catch(error){
-            console.error("Greška pri održavanju prehrane", error)
-        } finally{
+            console.error(error)
+            alert(error.response.data.greska)
+        }finally{
             loading.value= false
         }
     }
 
 
 
-    watch(odabraniDatum, (novi)=>{
-        postaviPrehranuZaDatum(novi)
+    watch(()=> props.datum, (novi)=>{
+        odabraniDatum.value= new Date(novi)
+        postaviPrehranuZaDatum(odabraniDatum.value)
     })
 
     onMounted(async() => {
-        await dohvatiUserPodatke(),
-        await preracunajan(),
-        await dohvatiHranu(),
+        await preracunajan()
+        await dohvatiUserPodatke()
+        await dohvatiHranu()
         await dohvatiObroke()
+
+        await postaviPrehranuZaDatum(odabraniDatum.value)
     })
 </script>
 

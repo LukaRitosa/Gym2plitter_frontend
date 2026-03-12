@@ -33,6 +33,11 @@
         }
     }) 
 
+    function idiNaPrehranu(){
+        const danas= new Date().toLocaleDateString("sv-SE")
+        router.push(`/prehrana/${danas}`) 
+    }
+
 
 
     const logout = () => {
@@ -101,7 +106,7 @@
         </div>
 
         <div >
-            <RouterLink to="/prehrana" class="w-full bg-pink-800 rounded hover:bg-pink-600 p-2 font-semibold"> prehrana</RouterLink>
+            <button @click="idiNaPrehranu" class="w-full bg-pink-800 rounded hover:bg-pink-600 p-2 font-semibold"> Prehrana</button>
         </div>
 
         <div >

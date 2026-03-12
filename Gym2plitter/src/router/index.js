@@ -135,9 +135,10 @@ const router = createRouter({
        meta: {requiresAuth: true}
     },   
     {
-      path: '/prehrana',
+      path: '/prehrana/:datum',
       name: 'prehrana',
       component: Prehrana,
+      props: true,
       meta: {requiresAuth: true}
     },
     {
