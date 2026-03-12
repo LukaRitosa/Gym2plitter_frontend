@@ -1,6 +1,6 @@
 <script setup>
     import { RouterLink, useRouter } from 'vue-router'
-    import { ref } from 'vue'
+    import { ref, onMounted } from 'vue'
 
 
     const email = ref('')
@@ -9,8 +9,8 @@
 
     const loading = ref(false)
     
-    const admin_mail='admin@gmail.com'
-    const admin_lozinka='lozinka123'
+    const admin_mail= import.meta.env.VITE_ADMIN_MAIL
+    const admin_lozinka=import.meta.env.VITE_ADMIN_LOZINKA
 
     const router=useRouter()
 
@@ -19,9 +19,19 @@
             localStorage.setItem('admin', 'true')
             router.push('/admin')
         } else {
-            error.value = 'Neispravan email ili lozinka'
+            poruka.value = {
+                error: true,
+                message: 'Neispravan email ili lozinka'
+            }
         }
     }
+
+    onMounted(()=>{
+        const token= localStorage.getItem("token")
+        if(token){
+            router.push("/pocetna")
+        }
+    })
 
 </script>
 

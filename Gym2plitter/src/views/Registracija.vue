@@ -1,6 +1,6 @@
 <script setup>
     import { RouterLink, useRouter } from 'vue-router'
-    import { ref } from 'vue'
+    import { ref, onMounted } from 'vue'
     import axios from 'axios'
     
     const username=ref("")    
@@ -40,7 +40,12 @@
         }
     }
 
-    
+    onMounted(()=>{
+        const token= localStorage.getItem("token")
+        if(token){
+            router.push("/pocetna")
+        }
+    })
 
 
 </script>

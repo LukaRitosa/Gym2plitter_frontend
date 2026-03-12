@@ -1,12 +1,9 @@
 <script setup>
     import { ref } from 'vue'
-    import { db } from '@/firebase'
-    import { collection, addDoc } from 'firebase/firestore'
-    import { useUserStore } from '@/stores/userStore'
     import { RouterLink } from 'vue-router'
+    import axios from 'axios'
 
 
-    const userStore= useUserStore()
 
     const naziv=ref('')
     const kalorije=ref('')
@@ -16,38 +13,38 @@
 
     const loading = ref(false)
 
+    
+    const ruta = import.meta.env.VITE_BASE_URL
+    const token = localStorage.getItem("token")
+
     const dodajUserHranu=async ()=>{
         loading.value=true
         try{
 
-            const user = userStore.currentUser
-            if (!user) {
-                poruka.value = 'Morate biti prijavljeni da biste dodali hranu.'
-                loading.value = false
-                return
-            }
-
-            const novaHrana={
+             const novaHrana={
                 naziv: naziv.value,
                 kalorije: kalorije.value,
                 proteini: proteini.value
             }
-            
-            const userHranaRef = collection(db, `users/${user.uid}/customHrana`)
-            await addDoc(userHranaRef, novaHrana)
-        
+
+            await axios.post(
+                `${ruta}/hrana/custom`, 
+                novaHrana,
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
 
             poruka.value = 'Hrana uspješno dodana'
 
+            
             naziv.value = ''
             kalorije.value = ''
             proteini.value=''
-        }catch (error) {
-            console.error('Greška kod dodavanja hrane:', error)
-            poruka.value = 'Došlo je do greške'
-        }
-        finally{
-            loading.value=false
+
+        }catch(error){
+            console.error(error)
+            alert(error.response.data.greska)
+        }finally{
+            loading.value= false
         }
     }
 </script>

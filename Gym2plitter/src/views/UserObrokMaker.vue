@@ -4,6 +4,7 @@
     import { collection, getDocs, addDoc } from 'firebase/firestore';
     import { useUserStore } from '@/stores/userStore'
     import { RouterLink } from 'vue-router'
+    import axios from 'axios'
 
 
     const userStore = useUserStore()
@@ -16,34 +17,27 @@
 
     const sastojci= ref([])
 
-
-
     const poruka = ref('')
     const loading = ref(false)
     const showSastojci = ref(false)
 
-    const dohvatiGlobalnuHranu = async () => {
-        const snapshot= await getDocs(collection(db, 'hrana'))
-       
-        return snapshot.docs.map(doc=> ({ id: doc.id, ...doc.data() }))
-    }
-
-    const dohvatiCustomHranu= async ()=>{
-        if(!userStore.currentUser) return []
-        const snapshot= await getDocs(collection(db, `users/${userStore.currentUser.uid}/customHrana`))
-      
-        return snapshot.docs.map(doc=> ({ id: doc.id, ...doc.data() }))
-    }
+    
+    const ruta = import.meta.env.VITE_BASE_URL
+    const token = localStorage.getItem("token")
 
     const dohvatiSvuHranu= async()=>{
         loading.value= true
         try{
-            const globalnaHrana= await dohvatiGlobalnuHranu()
-            const customHrana= await dohvatiCustomHranu()
-            sviSastojci.value=[...globalnaHrana, ...customHrana]
+            const rez= await axios.get(
+                `${ruta}/hrana/biranje`, 
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
+
+            sviSastojci.value= rez.data
         } catch(error){
-            console.error('Greška pri dohvaćanju hrane: ', error)
-        } finally{
+            console.error(error)
+            alert(error.response.data.greska)
+        }finally{
             loading.value= false
         }
     }
@@ -69,10 +63,10 @@
 
     const potvrdiSastojke= () =>{
         sastojci.value=tempSastojci.value.map(id=>{
-            const h=sviSastojci.value.find(s=>s.id==id)
+            const h=sviSastojci.value.find(s => s._id.toString()==id)
 
             return {
-                id: h.id,
+                id: h._id.toString(),
                 naziv: h.naziv,
                 kalorije: h.kalorije,
                 proteini: h.proteini,
@@ -80,6 +74,7 @@
             }
         })
 
+        tempSastojci.value = []  
         showSastojci.value= false
     }
 
@@ -93,24 +88,24 @@
             const noviObrok = {
                 naziv: naziv.value,
                 opis: opis.value,
-                sastojci: sastojci.value,
-                kalorije: Number(ukupneKalorije.value),
-                proteini: Number(ukupniProteini.value),
-                grami: ukupniGrami.value
+                sastojci: sastojci.value.map(s=> ({ id: s.id, grami: s.grami }))
             } 
 
-            await addDoc(collection(db, `users/${userStore.currentUser.uid}/customObroci`), noviObrok)
+            await axios.post(
+                `${ruta}/obrok/custom`, 
+                noviObrok,
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
 
             poruka.value = 'obrok uspješno dodan'
             naziv.value = ''
             opis.value=''
             sastojci.value = []
-        } catch (error) {
-            console.error('Greška:', error)
-            poruka.value = 'Greška pri spremanju.'
-        }
-        finally{
-            loading.value = false
+        } catch(error){
+            console.error(error)
+            alert(error.response.data.greska)
+        }finally{
+            loading.value= false
         }
     
     }
@@ -157,8 +152,8 @@
             <div v-if="showSastojci" class="bg-red-800 p-4 rounded mt-3">
                 <h3 class="font-bold mb-2">Odaberi sastojke</h3>
 
-                <label v-for="h in sviSastojci" :key="h.id" class="flex gap-2 items-center">
-                    <input type="checkbox" :value="h.id" v-model="tempSastojci"/> {{ h.naziv }}
+                <label v-for="h in sviSastojci" :key="h._id" class="flex gap-2 items-center text-white">
+                    <input type="checkbox" :value="h._id" v-model="tempSastojci"/> {{ h.naziv }}
                 </label>
 
                 <button @click="potvrdiSastojke" class="bg-green-600 px-3 py-1 rounded mt-2">
