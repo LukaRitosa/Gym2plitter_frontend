@@ -2,6 +2,10 @@
     import { RouterLink, useRouter } from 'vue-router'
     import { onMounted, ref } from 'vue'
     import axios from 'axios'
+    
+    import SplitIkona from '@/ikone/split_ikona.svg'
+    import prehranaIkona from '@/ikone/prehrana_ikona.svg'
+    import korisnikIkona from '@/ikone/korisnik_ikona.svg'
 
 
     const userPodaci = ref(null)
@@ -72,57 +76,68 @@
             </div>
         </div>
 
-        <div v-if="userPodaci && !userPodaci.slobodnoVrijeme" class="flex flex-col items-center justify-center ">
-            <div class="my-4">
-                Preporučamo da riješiš naš test za procjenu tvog slobodnog vremena na raspolaganju za bolje prijedloge!             
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl mt-6">
+            <div class="bg-white shadow rounded-xl p-4 flex flex-col items-center gap-3">
+                <h3 class="text-lg font-bold">Split</h3>
+
+                <SplitIkona class="h-12 w-12 text-red-600 mb-3"/>
+
+                
+                <RouterLink :to=" userPodaci && userPodaci.trenutniSplit ? '/Split' : '/SplitBiranje'" class="w-full text-center bg-red-700 text-white rounded p-2 hover:bg-red-600">
+                    {{userPodaci && userPodaci.trenutniSplit ? 'Split' : 'Split biranje'}}
+                </RouterLink>
+
+                <RouterLink to="/kalendar" class="w-full text-center bg-red-700 text-white rounded p-2 hover:bg-red-600">
+                    Kalendar
+                </RouterLink>
+
+                <RouterLink to="/UserSplitMaker" class="w-full text-center bg-red-700 text-white rounded p-2 hover:bg-red-600">
+                    Split Maker
+                </RouterLink>
             </div>
-            <div >
-                <RouterLink to="/test" class="w-full bg-red-800 text-white rounded hover:bg-red-600 p-2 font-semibold">Test</RouterLink>
+
+            <div class="bg-white shadow rounded-xl p-4 flex flex-col items-center gap-3">
+                <h3 class="text-lg font-bold">Korisnik</h3>
+                
+                <korisnikIkona class="h-12 w-12 text-red-600 mb-3"/>
+                
+                <RouterLink to="/test" class="w-full text-center bg-yellow-700 rounded p-2 hover:bg-yellow-600">
+                    Test
+                </RouterLink>
+                
+
+                <RouterLink to="/kalkulatorTest" class="w-full text-center bg-yellow-700 rounded p-2 hover:bg-yellow-600">
+                    Kalkulator
+                </RouterLink>
+
+
+            </div>
+
+            <div class="bg-white shadow rounded-xl p-4 flex flex-col items-center gap-3">
+                <h3 class="text-lg font-bold">Prehrana</h3>
+
+                <prehranaIkona class="h-12 w-12 text-red-600 mb-3"/>
+
+                <button @click="idiNaPrehranu"
+                class="w-full bg-pink-700 text-white rounded p-2 hover:bg-pink-600">
+                    Prehrana
+                </button>
+
+                <RouterLink to="/UserHranaMaker" class="w-full text-center bg-pink-700 text-white rounded p-2 hover:bg-pink-600">
+                    Hrana maker
+                </RouterLink>
+
+                <RouterLink to="/UserObrokMaker" class="w-full text-center bg-pink-700 text-white rounded p-2 hover:bg-pink-600">
+                    Obrok maker
+                </RouterLink>
             </div>
         </div>
 
-        <div v-else>
-            <RouterLink to="/test" class="w-full bg-gray-800 text-white rounded hover:bg-gray-600 p-2 font-semibold">Promjeni podatke</RouterLink>
-        </div>
-
-        <div v-if="userPodaci && userPodaci.trenutniSplit">
-            <RouterLink to="/Split" class="w-full bg-red-800 text-white rounded hover:bg-red-600 p-2 font-semibold"> Split</RouterLink>
-        </div>
-
-        <div v-else>
-            <RouterLink to="/SplitBiranje" class="w-full bg-red-800 text-white rounded hover:bg-red-600 p-2 font-semibold"> Split biranje</RouterLink>
-        </div>
-
-        <div >
-            <RouterLink to="/kalendar" class="w-full bg-pink-800 text-white rounded hover:bg-pink-600 p-2 font-semibold"> Kaledar</RouterLink>
-        </div>
-
-        <div >
-            <RouterLink to="/kalkulatorTest" class="w-full bg-yellow-800 rounded hover:bg-yellow-600 p-2 font-semibold"> kalkulator</RouterLink>
-        </div>
-
+<!-- 
         <div >
             <RouterLink to="/hranaBiranje" class="w-full bg-pink-800 rounded hover:bg-pink-600 p-2 font-semibold"> biranje hrane</RouterLink>
-        </div>
+        </div> -->
 
-        <div >
-            <button @click="idiNaPrehranu" class="w-full bg-pink-800 rounded hover:bg-pink-600 p-2 font-semibold"> Prehrana</button>
-        </div>
-
-        <div >
-            <RouterLink to="/UserHranaMaker" class="w-full bg-green-800 rounded hover:bg-pink-600 p-2 font-semibold"> Hrana Maker</RouterLink>
-        </div>
-
-        <div >
-            <RouterLink to="/UserObrokMaker" class="w-full bg-yellow-800 rounded hover:bg-pink-600 p-2 font-semibold"> Obrok Maker</RouterLink>
-        </div>
-
-        <div >
-            <RouterLink to="/UserSplitMaker" class="w-full bg-pink-800 rounded hover:bg-pink-600 p-2 font-semibold"> Split Maker</RouterLink>
-        </div>
-
-
-        
         
         <div class="text-red-500">{{ poruka }}</div>
 

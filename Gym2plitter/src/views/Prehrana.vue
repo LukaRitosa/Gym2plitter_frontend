@@ -322,6 +322,22 @@
         }
     }
 
+    const postotakKalorije= computed(()=>{
+        if(!userPodaci.value || !danasnjaPrehrana.value) return 0
+        return Math.min(
+            (danasnjaPrehrana.value.ostvareneKalorije / userPodaci.value.cilj_kalorije) * 100,
+            100
+        )
+    })
+
+    const postotakProteini = computed(() => {
+        if (!userPodaci.value || !danasnjaPrehrana.value) return 0
+        return Math.min(
+            (danasnjaPrehrana.value.ostvareniProteini / userPodaci.value.cilj_proteini) * 100,
+            100
+        )
+    })
+
 
 
     watch(()=> props.datum, (novi)=>{
@@ -340,44 +356,66 @@
 </script>
 
 <template>
-    <div v-if="!loading && !izbornikHrane && !detalji" class="min-h-screen flex flex-col items-center justify-center bg-gray-100 text-red-900 px-4">
+    <div class="my-4">
+            <RouterLink to="/pocetna" class="w-full bg-red-600 text-white rounded hover:bg-red-400 p-2 font-semibold"> Početna</RouterLink>
+        </div>
+    <div v-if="!loading && !izbornikHrane && !detalji" class="min-h-screen flex flex-col items-center bg-gray-100 text-gray-800 px-4 py-8">
 
-        <div class="flex items-center justify-between bg-white rounded-xl shadow p-4">
-            <button @click="nazad" class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300">
+        <div class="flex items-center justify-between bg-white rounded-xl shadow-md px-6 py-4 mb-6 w-full max-w-md">
+            <button @click="nazad" class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 font-bold">
                 ◀
             </button>
 
-            <div class="font-semibold">
+            <div class="text-lg font-semibold tracking-wide text-gray-700">
                 {{ formatirajDatumISO(odabraniDatum) }}
             </div>
 
-            <button @click="naprijed" class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300">
+            <button @click="naprijed" class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 font-bold">
                 ▶
             </button>
         </div>
 
-        <div v-if="userPodaci">
-            <p>Kalorije: {{ Number(userPodaci.cilj_kalorije).toFixed(2) ?? 'Nije definirano' }} kcal</p>
-            <p>Proteini: {{ Number(userPodaci.cilj_proteini).toFixed(2) ?? 'Nije definirano' }}</p>
+        <div v-if="userPodaci" class="flex flex-col items-center">
+            <span class="text-xs text-gray-500 uppercase tracking-wide">Cilj kalorije:</span> 
+            <span class="text-lg font-semibold text-green-600">{{ Number(userPodaci.cilj_kalorije).toFixed(2) ?? 'Nije definirano' }} kcal</span>
         </div>
 
-        <div v-if="danasnjaPrehrana">
-            <p>Ostvarene kalorije: {{ Number(danasnjaPrehrana.ostvareneKalorije).toFixed(2) }}</p>
-            <p>Ostvareni proteini: {{ Number(danasnjaPrehrana.ostvareniProteini).toFixed(2) }}</p>
+        <div v-if="userPodaci" class="flex flex-col items-center">
+            <span class="text-xs text-gray-500 uppercase tracking-wide">Cilj proteini:</span> 
+            <span class="text-lg font-semibold text-red-600">{{ Number(userPodaci.cilj_proteini).toFixed(2) ?? 'Nije definirano' }} g</span>
+    
+        </div>
 
-            <div v-for="(obrok, ime_obroka) in danasnjaPrehrana.pojedeno" :key="ime_obroka" class="mb-2">
-                <b>{{ ime_obroka }}:</b> <button @click="otvoriIzbornik(ime_obroka)">+</button>
+        <div v-if="danasnjaPrehrana" class="bg-white shadow rounded-xl p-4 w-full max-w-md mb-6">
+            <p class="font-semibold mb-1">Ostvarene kalorije: {{ Number(danasnjaPrehrana.ostvareneKalorije).toFixed(2) }}</p>
+            
+            <div class="w-full bg-gray-200 rounded-full h-3 mb-3">
+                <div class="h-3 bg-green-500 rounded-full transition-all" :style="{ width: postotakKalorije + '%' }"></div>
+            </div>
+
+
+            <p class="font-semibold mb-1">Ostvareni proteini: {{ Number(danasnjaPrehrana.ostvareniProteini).toFixed(2) }}</p>
+
+            <div class="w-full bg-gray-200 rounded-full h-3 mb-4">
+                <div class="h-3 bg-red-400 rounded-full transition-all" :style="{ width: postotakProteini + '%' }"></div>
+            </div>
+
+
+
+            <div v-for="(obrok, ime_obroka) in danasnjaPrehrana.pojedeno" :key="ime_obroka" class="border-t pt-3 mt-3">
+                <b class="flex justify-between items-center font-semibold">{{ ime_obroka }}:</b> 
+                <button @click="otvoriIzbornik(ime_obroka)" class="bg-red-500 text-white rounded px-2 hover:bg-red-600">+</button>
                 <ul>
                     <li v-if="obrok.length === 0" class="text-gray-500 italic">
                         Nema unosa
                     </li>
-                    <li v-for="(stavka, i) in obrok" :key="i">
-                        <span class="cursor-pointer underline" @click="urediStavku(ime_obroka, i)">
+                    <li v-for="(stavka, i) in obrok" :key="i" class="flex justify-between items-center text-sm py-1">
+                        <span class="cursor-pointer hover:underline" @click="urediStavku(ime_obroka, i)">
                             {{ stavka.naziv }} - {{ stavka.grami }} g 
                             {{ stavka.proteini }} g proteina - {{ stavka.kalorije }} kalorija
                         </span>
 
-                        <button class="text-red-600 font-bold" @click="obrisiStavku(ime_obroka, i)">
+                        <button class="text-red-600 font-bold ml-2 hover:text-red-800" @click="obrisiStavku(ime_obroka, i)">
                             ✕
                         </button>
                     </li>
@@ -390,7 +428,7 @@
         </div>
     </div>
 
-    <div v-else-if="izbornikHrane && !detalji" class="min-h-screen flex flex-col items-center justify-center bg-gray-100 text-red-900 px-4">
+    <div v-else-if="izbornikHrane && !detalji" class="min-h-screen flex flex-col items-center bg-gray-100 text-gray-800 px-4 py-8">
         <button @click="zatvoriIzbornik()">
             zatvori
         </button>
@@ -399,7 +437,7 @@
                 Hrana
             </b>
         </h3>
-        <div v-for="h in svaHrana" :key="h.id" @click="detaljiHrane(h)">
+        <div v-for="h in svaHrana" :key="h.id" @click="detaljiHrane(h)" class="bg-white rounded-lg shadow p-3 w-full max-w-md mb-2 cursor-pointer hover:bg-gray-50">
             {{ h.naziv }} – {{ h.kalorije }} kcal / {{ h.proteini }} g
             <b>{{ h.grami }} grama</b>
         </div>
@@ -409,43 +447,42 @@
                 Obroci
             </b>
         </h3>
-        <div v-for="o in sviObroci" :key="o.id" @click="detaljiObroka(o)">
+        <div v-for="o in sviObroci" :key="o.id" @click="detaljiObroka(o)" class="bg-white rounded-lg shadow p-3 w-full max-w-md mb-2 cursor-pointer hover:bg-gray-50">
             {{ o.naziv }} – {{ o.kalorije }} kcal / {{ o.proteini }} g 
             <b>{{ o.grami }} grama</b>
         </div>
 
     </div>
 
-    <div v-else-if="detalji" class="min-h-screen flex flex-col items-center justify-center bg-gray-100 text-red-900 px-4">
-        <button @click="zatvoriDetalji()">
-            nazad
-        </button>
+    <div v-else-if="detalji" class="min-h-screen flex flex-col items-center justify-center bg-gray-100 px-4">
+        <div class="bg-white shadow-lg rounded-xl p-6 w-full max-w-sm text-center space-y-3">
+            <button @click="zatvoriDetalji()">
+                Nazad
+            </button>
 
-        <div>
-            {{ detaljiStavke.podatak.naziv }}
-        </div>
-        <div>
-            {{ izracunateKalorije }} kcal
-        </div>
-        <div>
-            {{ izracunatiProteini }} g
-        </div>
-        <div>
-            {{ detaljiStavke.podatak.grami }} grama
-        </div>
-        
-        <label>
-            Grami:
-            <input type="number" min="1" v-model.number="detaljiStavke.novi_grami" class="border px-2 py-1 w-24"/>
-        </label>
+            <div class="text-xl font-bold">
+                {{ detaljiStavke.podatak.naziv }}
+            </div>
+            <div class="text-green-600 font-semibold">
+                {{ izracunateKalorije }} kcal
+            </div>
+            <div class="text-red-500 font-semibold">
+                {{ izracunatiProteini }} g
+            </div>
+            
+            <label>
+                Grami:
+                <input type="number" min="1" v-model.number="detaljiStavke.novi_grami" class="border rounded px-2 py-1 w-24 text-center"/>
+            </label>
 
-        <button v-if="editMode" class="bg-blue-600 text-white px-4 py-2 rounded" @click="urediUredenuStavku">
-            Spremi promjene
-        </button>
+            <button v-if="editMode" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full" @click="urediUredenuStavku">
+                Spremi promjene
+            </button>
 
-        <button v-else class="bg-red-600 text-white px-4 py-2 rounded" @click="dodajStavku">
-            Dodaj u {{ aktivniObrok }}
-        </button>
+            <button v-else class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded w-full" @click="dodajStavku">
+                Dodaj u {{ aktivniObrok }}
+            </button>
+        </div>
     </div>
 
     <div v-else class="min-h-screen flex flex-col items-center px-4 justify-center">
