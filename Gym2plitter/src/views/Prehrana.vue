@@ -357,13 +357,13 @@
         </div>
 
         <div v-if="userPodaci">
-            <p>Kalorije: {{ userPodaci.cilj_kalorije ?? 'Nije definirano' }} kcal</p>
-            <p>Proteini: {{ userPodaci.cilj_proteini ?? 'Nije definirano' }}</p>
+            <p>Kalorije: {{ Number(userPodaci.cilj_kalorije).toFixed(2) ?? 'Nije definirano' }} kcal</p>
+            <p>Proteini: {{ Number(userPodaci.cilj_proteini).toFixed(2) ?? 'Nije definirano' }}</p>
         </div>
 
         <div v-if="danasnjaPrehrana">
-            <p>Ostvarene kalorije: {{ danasnjaPrehrana.ostvareneKalorije }}</p>
-            <p>Ostvareni proteini: {{ danasnjaPrehrana.ostvareniProteini }}</p>
+            <p>Ostvarene kalorije: {{ Number(danasnjaPrehrana.ostvareneKalorije).toFixed(2) }}</p>
+            <p>Ostvareni proteini: {{ Number(danasnjaPrehrana.ostvareniProteini).toFixed(2) }}</p>
 
             <div v-for="(obrok, ime_obroka) in danasnjaPrehrana.pojedeno" :key="ime_obroka" class="mb-2">
                 <b>{{ ime_obroka }}:</b> <button @click="otvoriIzbornik(ime_obroka)">+</button>
