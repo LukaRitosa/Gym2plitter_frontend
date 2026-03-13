@@ -357,7 +357,8 @@
 </script>
 
 <template>
-    <div v-if="!loading && !izbornikHrane && !detalji" class="min-h-screen flex flex-col items-center bg-gray-100 text-gray-800 px-4 py-8">
+    <div v-if="!loading && !izbornikHrane && !detalji" class="min-h-screen flex flex-col items-center bg-gray-100 text-gray-800 px-4 py-8"
+    >
 
         <RouterLink  to="/pocetna" class="text-center bg-red-600 text-white rounded hover:bg-red-400 p-2 font-semibold mb-4">
             Početna
@@ -491,3 +492,4 @@
         <img src="https://static.wixstatic.com/media/68315b_30dbad1140034a3da3c59278654e1655~mv2.gif" class="h-full" />
     </div>
 </template>
+
