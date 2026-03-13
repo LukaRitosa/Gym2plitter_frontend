@@ -122,7 +122,7 @@
     <div class="min-h-screen flex items-center justify-center bg-white text-red-900 px-4">
 
         <div>
-            <RouterLink to="/prehrana" class="w-full bg-red-800 text-white rounded hover:bg-red-400 p-2 font-semibold ">
+            <RouterLink to="/pocetna" class="w-full bg-red-800 text-white rounded hover:bg-red-400 p-2 font-semibold ">
                 Nazad
             </RouterLink>
 

@@ -93,7 +93,7 @@
 
         <div class="grid grid-cols-1 gap-4 my-4">
             <div v-for="dan in splitPodaci.dani" :key="dan.dan" class="p-6 rounded-lg border border-gray-300 shadow-md bg-red-900 text-white cursor-pointer hover:bg-red-700 transition"
-            :class="{'ring-4 ring-red-300': splitPodaci.kalendar[danas.value]?.split_dan_id === dan.dan}" @click="router.push(`/UrediDan/${dan.dan}`)">
+            :class="{'ring-4 ring-red-600': splitPodaci.kalendar[danas]?.split_dan_id === dan.dan}" @click="router.push(`/UrediDan/${dan.dan}`)">
                 Dan {{ dan.dan }}  {{ dan.naziv }} ({{ dan.vjezbe.length }} vježba)
             </div>
         </div>

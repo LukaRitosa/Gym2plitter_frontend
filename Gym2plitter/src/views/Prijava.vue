@@ -3,6 +3,8 @@
     import { ref, onMounted } from 'vue'
     import axios from 'axios'
 
+    import Logo from '@/ikone/logo.svg'
+
     const email = ref('')
     const password = ref('')
     const poruka=ref({ error: false, message: '' })
@@ -55,9 +57,9 @@
         
         <div class="bg-white p-6 rounded-md w-full max-w-md">
             
-            <div class="text-center mb-6 p-4">
-                    <div class="text-4xl font-serif font-bold">GymSplitter</div>
-                    <div class="text-center text-3xl mt-2">🏋️‍♀️</div>
+            <div class="text-center mb-6 p-4 flex flex-col items-center gap-3">
+                <div class="text-5xl font-serif font-bold">GymSplitter</div>
+                <Logo class="h-16 w-16 text-red-700"/>
             </div>
             
             <div class="flex justify-center border-b border-gray-300 mb-6">

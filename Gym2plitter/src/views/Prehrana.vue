@@ -86,6 +86,7 @@
     async function postaviPrehranuZaDatum(datum){ 
         loading.value= true
         try{
+            
             const rez= await axios.get(
                 `${ruta}/prehrana/${formatirajDatumISO(datum)}`,
                 { headers: { Authorization: `Bearer ${token}` } }
@@ -215,7 +216,7 @@
             )
 
             await dohvatiUserPodatke()
-            postaviPrehranuZaDatum(odabraniDatum.value)
+            await postaviPrehranuZaDatum(odabraniDatum.value)
         }catch(error){
             console.error(error)
             alert(error.response.data.greska)
@@ -242,7 +243,7 @@
             )
 
             await dohvatiUserPodatke()
-            postaviPrehranuZaDatum(odabraniDatum.value)
+            await postaviPrehranuZaDatum(odabraniDatum.value)
         }catch(error){
             console.error(error)
             alert(error.response.data.greska)
@@ -290,7 +291,7 @@
             )
 
             await dohvatiUserPodatke()
-            postaviPrehranuZaDatum(odabraniDatum.value)
+            await postaviPrehranuZaDatum(odabraniDatum.value)
         }catch(error){
             console.error(error)
             alert(error.response.data.greska)
@@ -305,7 +306,7 @@
         }
     }
 
-    async function preracunajan(){
+    async function preracunaj(){
         loading.value=true
 
         try{
@@ -340,13 +341,13 @@
 
 
 
-    watch(()=> props.datum, (novi)=>{
+    watch(()=> props.datum, async (novi)=>{
         odabraniDatum.value= new Date(novi)
-        postaviPrehranuZaDatum(odabraniDatum.value)
+        await postaviPrehranuZaDatum(odabraniDatum.value)
     })
 
     onMounted(async() => {
-        await preracunajan()
+        await preracunaj()
         await dohvatiUserPodatke()
         await dohvatiHranu()
         await dohvatiObroke()
@@ -356,11 +357,12 @@
 </script>
 
 <template>
-    <div class="my-4">
-            <RouterLink to="/pocetna" class="w-full bg-red-600 text-white rounded hover:bg-red-400 p-2 font-semibold"> Početna</RouterLink>
-        </div>
     <div v-if="!loading && !izbornikHrane && !detalji" class="min-h-screen flex flex-col items-center bg-gray-100 text-gray-800 px-4 py-8">
 
+        <RouterLink  to="/pocetna" class="text-center bg-red-600 text-white rounded hover:bg-red-400 p-2 font-semibold mb-4">
+            Početna
+        </RouterLink>
+        
         <div class="flex items-center justify-between bg-white rounded-xl shadow-md px-6 py-4 mb-6 w-full max-w-md">
             <button @click="nazad" class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 font-bold">
                 ◀
@@ -429,8 +431,8 @@
     </div>
 
     <div v-else-if="izbornikHrane && !detalji" class="min-h-screen flex flex-col items-center bg-gray-100 text-gray-800 px-4 py-8">
-        <button @click="zatvoriIzbornik()">
-            zatvori
+        <button @click="zatvoriIzbornik()" class="text-center bg-gray-600 text-white rounded hover:bg-gray-400 p-2 font-semibold mb-4">
+            Zatvori
         </button>
         <h3>
             <b>
