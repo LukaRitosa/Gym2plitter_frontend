@@ -14,7 +14,7 @@ git clone https://github.com/LukaRitosa/Gym2plitter_frontend.git
 Prije sljedećih koraka potrebno je promjeniti direktorij.
 
 ```sh
-cd app
+cd Gym2plitter
 ```
 
 ## Project Setup
