@@ -150,7 +150,7 @@
                 </button>
             </div>
             <div v-if="showSastojci" class="bg-red-800 p-4 rounded mt-3">
-                <h3 class="font-bold mb-2">Odaberi sastojke</h3>
+                <h3 class="font-bold mb-2 text-white">Odaberi sastojke</h3>
 
                 <label v-for="h in sviSastojci" :key="h._id" class="flex gap-2 items-center text-white">
                     <input type="checkbox" :value="h._id" v-model="tempSastojci"/> {{ h.naziv }}
@@ -167,7 +167,7 @@
                 <div v-for="s in sastojci" :key="s.id" class="flex items-center gap-2 mb-1">
                     <span class="w-24">{{ s.naziv }}</span>
 
-                    <input type="number" v-model.number="s.grami" class="w-20 text-white px-1" /> g
+                    <input type="number" v-model.number="s.grami" class="w-20 text-black px-1" /> g
                 </div>
             </div>
 
